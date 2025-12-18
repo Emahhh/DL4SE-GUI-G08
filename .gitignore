@@ -359,6 +359,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Large model files
-*.pt
-backend/model.pt
+# Large model files (tracked with Git LFS)
+# *.pt
+# backend/model.pt

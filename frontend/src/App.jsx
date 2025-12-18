@@ -17,7 +17,7 @@ const NavBar = () => {
       <ul>
         {/* Brand or title link that routes to the landing page. */}
         <li>
-          <strong>DL4SE Demo</strong>
+          <strong>DL4SE Ball Screw Drive Classifier</strong>
         </li>
       </ul>
       {/* Secondary list holds the route links. */}
@@ -55,12 +55,8 @@ const LandingPage = () => {
         </p>
         <p>
           Use the Predict page to upload an image and receive a probability for
-          whether it contains a defect. Everything ships in a single
-          multi-stage Docker container for portability.
-        </p>
-        <p>
-          Styling comes from Pico.css to keep the markup semantic and clean
-          with zero custom CSS.
+          whether it contains a defect. Or use the Inventory page to batch upload
+          multiple images and classify them all at once.
         </p>
       </section>
       {/* Call-to-action button that links to the prediction form. */}
@@ -318,6 +314,7 @@ const InventoryPage = () => {
           <table>
             <thead>
               <tr>
+                <th>Preview</th>
                 <th>Name</th>
                 <th>Status</th>
                 <th>Prob (defect)</th>
@@ -328,6 +325,13 @@ const InventoryPage = () => {
             <tbody>
               {items.map((item) => (
                 <tr key={item.id}>
+                  <td>
+                    <img
+                      src={item.image_path}
+                      alt={item.name}
+                      style={{ width: "72px", height: "72px", objectFit: "cover", borderRadius: "6px" }}
+                    />
+                  </td>
                   <td>{item.name}</td>
                   <td>{item.status}</td>
                   <td>{typeof item.score === "number" ? item.score.toFixed(3) : "--"}</td>

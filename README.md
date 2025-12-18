@@ -1,6 +1,6 @@
 # DL4SE Demo (FastAPI + React + PyTorch)
 
-A minimal, single-container web app that serves a CPU-friendly ConvNeXt-Tiny PyTorch image classifier via FastAPI and a Vite/React frontend styled with Pico.css.
+A minimal, single-container web app that serves a ConvNeXt-Tiny PyTorch image classifier via FastAPI and a Vite/React frontend styled with Pico.css.
 
 ## Project Layout
 
@@ -11,9 +11,10 @@ A minimal, single-container web app that serves a CPU-friendly ConvNeXt-Tiny PyT
 ## Prerequisites
 
 - Docker 24+ with buildx enabled.
-- Optional for local dev: Node 20+, Python 3.11+.
 
 ## Quickstart (Docker)
+
+0. Run Docker Desktop or Docker daemon.
 
 1. Build the image (native architecture):
    - `docker build -t dl4se-demo .`

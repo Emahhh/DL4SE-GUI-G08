@@ -96,6 +96,67 @@ class PredictResponse(BaseModel):
     # A simple binary label derived from the score using a 0.5 threshold.
     label: int
 
+def inspect_checkpoint() -> None:
+    """Inspect and print diagnostic information about the model checkpoint."""
+    if not MODEL_PATH.exists():
+        print(f"❌ Model file not found at {MODEL_PATH}")
+        return
+    
+    print(f"\n{'='*60}")
+    print(f"🔍 INSPECTING MODEL CHECKPOINT: {MODEL_PATH.name}")
+    print(f"{'='*60}")
+    
+    try:
+        # Load checkpoint
+        checkpoint = torch.load(MODEL_PATH, map_location=torch.device("cpu"), weights_only=False)
+        
+        # Check checkpoint format
+        if isinstance(checkpoint, dict):
+            print(f"✓ Checkpoint is a dictionary with keys: {list(checkpoint.keys())}")
+            
+            # Extract state_dict
+            if "model_state_dict" in checkpoint:
+                state_dict = checkpoint["model_state_dict"]
+                print(f"✓ Found 'model_state_dict' key")
+            elif "state_dict" in checkpoint:
+                state_dict = checkpoint["state_dict"]
+                print(f"✓ Found 'state_dict' key")
+            else:
+                state_dict = checkpoint
+                print(f"✓ Using checkpoint dict directly as state_dict")
+        else:
+            state_dict = checkpoint
+            print(f"✓ Checkpoint is a raw state_dict")
+        
+        # Check for backbone prefix
+        has_backbone_prefix = any(key.startswith("backbone.") for key in state_dict.keys())
+        print(f"✓ Has 'backbone.' prefix: {has_backbone_prefix}")
+        
+        # Print all keys and shapes
+        print(f"\n📋 State dict contains {len(state_dict)} keys:")
+        for key, value in state_dict.items():
+            if hasattr(value, 'shape'):
+                print(f"   {key}: {list(value.shape)}")
+        
+        # Check classifier head specifically
+        print(f"\n🎯 Classifier head inspection:")
+        classifier_keys = [k for k in state_dict.keys() if 'classifier' in k]
+        if classifier_keys:
+            for key in classifier_keys:
+                value = state_dict[key]
+                print(f"   {key}: {list(value.shape)}")
+                if 'classifier.2.weight' in key or 'classifier.weight' in key:
+                    num_classes = value.shape[0]
+                    print(f"   → Detected {num_classes} output classes")
+        else:
+            print(f"   ⚠️  No classifier keys found in checkpoint!")
+        
+        print(f"{'='*60}\n")
+        
+    except Exception as e:
+        print(f"❌ Error inspecting checkpoint: {e}")
+        print(f"{'='*60}\n")
+
 def load_model() -> torch.nn.Module:
     # Immediately fail with a clear message if the expected model file is absent.
     if not MODEL_PATH.exists():
@@ -103,15 +164,26 @@ def load_model() -> torch.nn.Module:
             f"Required model file not found at {MODEL_PATH}. Provide a convnext_tiny state_dict before starting the server."
         )
 
-    # First instantiate with the original 1000-class head so checkpoints with 1000 outputs load cleanly.
-    model = convnext_tiny(num_classes=1000)
+    # Instantiate with 2 classes to match the trained checkpoint head.
+    model = convnext_tiny(num_classes=2)
 
-    # Load weights from disk, forcing CPU placement for portability and safer deserialization.
-    state_dict = torch.load(
+    # Load checkpoint from disk, forcing CPU placement for portability.
+    checkpoint = torch.load(
         MODEL_PATH,
         map_location=torch.device("cpu"),
-        weights_only=True,
+        weights_only=False,  # Allow loading full checkpoint dicts with metadata.
     )
+
+    # Handle different checkpoint formats (dict wrapper vs raw state_dict).
+    if isinstance(checkpoint, dict):
+        if "model_state_dict" in checkpoint:
+            state_dict = checkpoint["model_state_dict"]
+        elif "state_dict" in checkpoint:
+            state_dict = checkpoint["state_dict"]
+        else:
+            state_dict = checkpoint
+    else:
+        state_dict = checkpoint
 
     # If weights were saved with a "backbone." prefix, strip it for compatibility.
     if any(key.startswith("backbone.") for key in state_dict.keys()):
@@ -121,15 +193,27 @@ def load_model() -> torch.nn.Module:
             trimmed[new_key] = value
         state_dict = trimmed
 
-    # Load weights non-strictly: backbone loads, classifier head may be skipped due to shape.
-    model.load_state_dict(state_dict, strict=False)
+    # The training added a separate classifier.1 (2-class head); map it to classifier.2 (Linear layer).
+    if "classifier.1.weight" in state_dict and "classifier.1.bias" in state_dict:
+        print("✓ Found trained 2-class head at classifier.1, mapping to classifier.2")
+        state_dict["classifier.2.weight"] = state_dict.pop("classifier.1.weight")
+        state_dict["classifier.2.bias"] = state_dict.pop("classifier.1.bias")
 
-    # Replace the classifier head with a binary head (2 logits).
-    model.classifier[2] = torch.nn.Linear(in_features=768, out_features=2)
+    # Load the trained weights non-strictly; ignore the old 1000-class head.
+    missing, unexpected = model.load_state_dict(state_dict, strict=False)
+    
+    # Print what was loaded and what was skipped.
+    if missing:
+        print(f"⚠️  Keys not loaded (expected for LayerNorm/Flatten): {missing}")
+    if unexpected:
+        print(f"⚠️  Unexpected keys (ignored): {[k for k in unexpected if 'classifier.2' not in k][:5]}")
 
     # Put the model into inference mode for deterministic behavior.
     model.eval()
     return model
+
+# Inspect the checkpoint before loading
+inspect_checkpoint()
 
 # Load the model once at startup so it can be reused for all incoming requests.
 MODEL = load_model()

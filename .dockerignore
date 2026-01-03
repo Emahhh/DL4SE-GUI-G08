@@ -1,0 +1,21 @@
+# Exclude files that are rebuilt inside the image
+frontend/node_modules
+frontend/dist
+
+# Python caches and virtual environments
+**/__pycache__/
+*.py[cod]
+.venv/
+ENV/
+
+# Local environment and tool metadata
+.env*
+.DS_Store
+.git
+.gitignore
+**/.pytest_cache/
+**/.mypy_cache/
+
+# Editor clutter
+.vscode/
+.idea/

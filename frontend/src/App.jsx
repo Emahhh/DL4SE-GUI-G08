@@ -1,90 +1,250 @@
 /**
- * Main React application file with exhaustive comments for learning.
+ * Main React application with a Material UI-driven design system.
  */
 
-// Import React and useState to build components and manage state.
-import React, { useState } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
+import {
+  Routes,
+  Route,
+  Link as RouterLink,
+  useLocation,
+} from "react-router-dom";
+import {
+  AppBar,
+  Toolbar,
+  Tabs,
+  Tab,
+  Box,
+  Container,
+  Stack,
+  Typography,
+  Button,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  Paper,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Checkbox,
+  Chip,
+  Snackbar,
+  Alert,
+  IconButton,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  TableContainer,
+  Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider,
+  LinearProgress,
+  CircularProgress,
+  FormControlLabel,
+} from "@mui/material";
+import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import InsightsIcon from "@mui/icons-material/Insights";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import NoteAddIcon from "@mui/icons-material/NoteAdd";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import CloseIcon from "@mui/icons-material/Close";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
+import BoltIcon from "@mui/icons-material/Bolt";
 
-// Import routing primitives to define SPA navigation without full page reloads.
-import { Link, Routes, Route } from "react-router-dom";
+const STATUS_OPTIONS = [
+  { value: "awaiting_review", label: "Awaiting Review" },
+  { value: "in_review", label: "In Review" },
+  { value: "needs_attention", label: "Needs Attention" },
+  { value: "cleared", label: "Cleared" },
+];
 
-// Define a small helper component to render the navigation bar.
+const SORT_OPTIONS = [
+  { value: "created_desc", label: "Newest first" },
+  { value: "created_asc", label: "Oldest first" },
+  { value: "status", label: "Status" },
+  { value: "score_desc", label: "Probability high-low" },
+];
+
+const OWNER_PRESETS = [
+  "",
+  "Quality",
+  "Maintenance",
+  "Reliability",
+  "Production",
+  "Supplier Quality",
+];
+
+const STATUS_TOKENS = {
+  awaiting_review: { bg: "#fef3c7", fg: "#92400e" },
+  in_review: { bg: "#dbeafe", fg: "#1d4ed8" },
+  needs_attention: { bg: "#fee2e2", fg: "#991b1b" },
+  cleared: { bg: "#dcfce7", fg: "#166534" },
+  default: { bg: "#e0e7ff", fg: "#1e1b4b" },
+};
+
+const getStatusLabel = (value) =>
+  STATUS_OPTIONS.find((option) => option.value === value)?.label || value;
+
+const formatTimestamp = (seconds) =>
+  new Date(seconds * 1000).toLocaleString();
+
+const StatusChip = ({ status }) => {
+  const palette = STATUS_TOKENS[status] || STATUS_TOKENS.default;
+  return (
+    <Chip
+      label={getStatusLabel(status)}
+      size="small"
+      sx={{
+        backgroundColor: palette.bg,
+        color: palette.fg,
+        fontWeight: 600,
+        letterSpacing: 0.3,
+      }}
+    />
+  );
+};
+
 const NavBar = () => {
-  // Return semantic navigation markup styled by Pico.css defaults.
+  const location = useLocation();
+  const tabs = [
+    { label: "Home", path: "/" },
+    { label: "Predict", path: "/predict" },
+    { label: "Inventory", path: "/inventory" },
+  ];
+  const currentTab =
+    tabs.find((tab) => tab.path !== "/" && location.pathname.startsWith(tab.path))
+      ?.path || "/";
+
   return (
-    <nav>
-      {/* Wrap navigation items in a container for layout. */}
-      <ul>
-        {/* Brand or title link that routes to the landing page. */}
-        <li>
-          <strong>DL4SE Ball Screw Drive Classifier</strong>
-        </li>
-      </ul>
-      {/* Secondary list holds the route links. */}
-      <ul>
-        {/* Link to the landing page explaining the model. */}
-        <li>
-          <Link to="/">Home</Link>
-        </li>
-        {/* Link to the prediction form page. */}
-        <li>
-          <Link to="/predict">Predict</Link>
-        </li>
-        {/* Link to the inventory page. */}
-        <li>
-          <Link to="/inventory">Inventory</Link>
-        </li>
-      </ul>
-    </nav>
+    <AppBar position="sticky" color="default" elevation={1} sx={{ mb: 2 }}>
+      <Toolbar sx={{ gap: 2 }}>
+        <PrecisionManufacturingIcon fontSize="large" color="primary" />
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" component="div">
+            DL4SE Industrial Inspector
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            AI-assisted quality console for ball screw drives
+          </Typography>
+        </Box>
+        <Tabs
+          value={currentTab}
+          textColor="primary"
+          indicatorColor="secondary"
+          sx={{ minHeight: 48 }}
+        >
+          {tabs.map((tab) => (
+            <Tab
+              key={tab.path}
+              label={tab.label}
+              value={tab.path}
+              component={RouterLink}
+              to={tab.path}
+            />
+          ))}
+        </Tabs>
+      </Toolbar>
+    </AppBar>
   );
 };
 
-// Define the landing page content that explains the application purpose.
-const LandingPage = () => {
-  // Return descriptive copy inside a responsive container.
-  return (
-    <main>
-      {/* Section introduces the model and stack. */}
-      <section>
-        <h1>Image Defect Classifier</h1>
-        <p>
-          This demo serves a ConvNeXt-Tiny PyTorch image classifier through a FastAPI
-          backend and a React frontend. The model loads with
-          map_location=torch.device('cpu') so it runs on Intel or Apple Silicon
-          without GPU drivers.
-        </p>
-        <p>
-          Use the Predict page to upload an image and receive a probability for
-          whether it contains a defect. Or use the Inventory page to batch upload
-          multiple images and classify them all at once.
-        </p>
-      </section>
-      {/* Call-to-action button that links to the prediction form. */}
-      <section>
-        <Link role="button" to="/predict">
-          Try a prediction
-        </Link>
-      </section>
-    </main>
-  );
-};
+const LandingPage = () => (
+  <Container maxWidth="lg" sx={{ py: 6 }}>
+    <Grid container spacing={4} alignItems="center">
+      <Grid item xs={12} md={6}>
+        <Stack spacing={3}>
+          <Typography variant="h3" component="h1">
+            Precision-grade defect detection built for the factory floor
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            A ConvNeXt-Tiny model powers instant defect scoring on every lot. The
+            operations console lets your quality, maintenance, and supplier teams
+            collaborate in one place with AI-driven recommendations.
+          </Typography>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <Button
+              variant="contained"
+              size="large"
+              component={RouterLink}
+              to="/predict"
+              startIcon={<AutoFixHighIcon />}
+            >
+              Run a single prediction
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              component={RouterLink}
+              to="/inventory"
+              startIcon={<Inventory2Icon />}
+            >
+              Open inventory manager
+            </Button>
+          </Stack>
+        </Stack>
+      </Grid>
+      <Grid item xs={12} md={6}>
+        <Card elevation={0} sx={{ borderRadius: 4, border: "1px solid #dfe3eb" }}>
+          <CardContent>
+            <Typography variant="overline" color="text.secondary">
+              What&apos;s included
+            </Typography>
+            <List>
+              {[
+                "ConvNeXt-Tiny inference running on CPU",
+                "FastAPI backend with persistent inventory",
+                "AI recommendations for triage workflows",
+                "Responsive Material Design UI",
+              ].map((feature) => (
+                <ListItem key={feature} disableGutters>
+                  <ListItemIcon>
+                    <CheckCircleOutlineIcon color="success" />
+                  </ListItemIcon>
+                  <ListItemText primary={feature} />
+                </ListItem>
+              ))}
+            </List>
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
+  </Container>
+);
 
-// Define the prediction page that gathers an image and calls the API.
 const PredictPage = () => {
-  // Store the selected file object so we can preview it and upload it.
   const [file, setFile] = useState(null);
-  // Hold a data URL preview string for user feedback.
   const [preview, setPreview] = useState("");
-  // Hold the parsed prediction response once available.
   const [result, setResult] = useState(null);
-  // Track whether the form submission is in progress to disable UI appropriately.
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Capture any error messages to display them to the user.
   const [error, setError] = useState("");
+  const fileInputRef = useRef(null);
 
-  // Convert the selected file into a base64 string and store preview.
   const handleFileChange = (event) => {
     const nextFile = event.target.files?.[0];
+    setResult(null);
     if (!nextFile) {
       setFile(null);
       setPreview("");
@@ -96,7 +256,6 @@ const PredictPage = () => {
     reader.readAsDataURL(nextFile);
   };
 
-  // Handle form submission by packaging the image and calling the backend API.
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
@@ -140,158 +299,181 @@ const PredictPage = () => {
   };
 
   return (
-    <main>
-      <section>
-        <h1>Send an Image</h1>
-        <p>Upload an image to classify whether it has a defect.</p>
-      </section>
-
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="image">Select an image (PNG/JPEG)</label>
-        <input
-          id="image"
-          name="image"
-          type="file"
-          accept="image/png, image/jpeg"
-          onChange={handleFileChange}
-          required
-        />
-
-        {preview && (
-          <figure>
-            <img src={preview} alt="Selected for prediction" style={{ maxWidth: "320px" }} />
-            <figcaption>Preview of the uploaded image.</figcaption>
-          </figure>
-        )}
-
-        <button type="submit" aria-busy={isSubmitting} disabled={isSubmitting}>
-          {isSubmitting ? "Classifying..." : "Predict"}
-        </button>
-      </form>
-
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
-
-      {result && (
-        <article>
-          <h2>Prediction</h2>
-          <p>Probability (has defect): {result.score.toFixed(4)}</p>
-          <p>Label: {result.label === 1 ? "Has defect" : "No defect"}</p>
-        </article>
-      )}
-    </main>
+    <Container maxWidth="md" sx={{ py: 6 }}>
+      <Grid container spacing={4}>
+        <Grid item xs={12} md={5}>
+          <Card elevation={0} sx={{ border: "1px solid #dfe3eb", borderRadius: 4 }}>
+            <CardContent>
+              <Typography variant="overline" color="text.secondary">
+                Workflow
+              </Typography>
+              <List dense>
+                {[
+                  "Upload a PNG or JPEG sample",
+                  "ConvNeXt generates a defect probability",
+                  "Use the result to triage or log",
+                ].map((step) => (
+                  <ListItem key={step} disableGutters>
+                    <ListItemIcon>
+                      <BoltIcon color="warning" />
+                    </ListItemIcon>
+                    <ListItemText primary={step} />
+                  </ListItem>
+                ))}
+              </List>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={7}>
+          <Paper elevation={2} sx={{ p: 3, borderRadius: 4 }}>
+            <Stack component="form" spacing={3} onSubmit={handleSubmit}>
+              <Typography variant="h5">Send an image</Typography>
+              <Typography variant="body2" color="text.secondary">
+                The model runs entirely on CPU, so you can test predictions from any
+                laptop without GPU drivers.
+              </Typography>
+              <input
+                ref={fileInputRef}
+                type="file"
+                hidden
+                accept="image/png, image/jpeg"
+                onChange={handleFileChange}
+              />
+              <Stack direction="row" spacing={2}>
+                <Button
+                  variant="outlined"
+                  startIcon={<UploadFileIcon />}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {file ? "Change image" : "Select image"}
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={isSubmitting}
+                  startIcon={<AutoFixHighIcon />}
+                >
+                  {isSubmitting ? "Classifying..." : "Predict"}
+                </Button>
+              </Stack>
+              {isSubmitting && <LinearProgress />}
+              {preview && (
+                <Card
+                  variant="outlined"
+                  sx={{ borderRadius: 3, overflow: "hidden" }}
+                >
+                  <img
+                    src={preview}
+                    alt="Selected sample"
+                    style={{ width: "100%", maxHeight: 320, objectFit: "contain" }}
+                  />
+                  <CardContent>
+                    <Typography variant="body2" color="text.secondary">
+                      Preview of the uploaded image
+                    </Typography>
+                  </CardContent>
+                </Card>
+              )}
+              {error && <Alert severity="error">{error}</Alert>}
+              {result && (
+                <Card
+                  variant="outlined"
+                  sx={{ borderRadius: 3, bgcolor: "#f8fafc" }}
+                >
+                  <CardContent>
+                    <Typography variant="h6">Prediction</Typography>
+                    <Typography variant="body1" sx={{ fontSize: "1.4rem", fontWeight: 600 }}>
+                      Probability (has defect): {result.score.toFixed(4)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Label: {result.label === 1 ? "Has defect" : "No defect"}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              )}
+            </Stack>
+          </Paper>
+        </Grid>
+      </Grid>
+    </Container>
   );
 };
 
-const STATUS_OPTIONS = [
-  { value: "unclassified", label: "Awaiting Intake" },
-  { value: "awaiting_classification", label: "Awaiting Classification" },
-  { value: "needs_review", label: "Needs Review" },
-  { value: "needs_rework", label: "Needs Rework" },
-  { value: "monitor", label: "Monitoring" },
-  { value: "defect", label: "Confirmed Defect" },
-  { value: "quarantine", label: "Quarantined" },
-  { value: "cleared", label: "Cleared" },
-  { value: "no_defect", label: "No Defect" },
-  { value: "resolved", label: "Resolved" },
-];
-
-const SORT_OPTIONS = [
-  { value: "created_desc", label: "Newest first" },
-  { value: "created_asc", label: "Oldest first" },
-  { value: "status", label: "Status" },
-  { value: "score_desc", label: "Probability high-low" },
-];
-
-const OWNER_PRESETS = ["", "Quality", "Maintenance", "Reliability", "Production", "Supplier Quality"];
-
-const STATUS_TOKENS = {
-  unclassified: { bg: "#f4f4f5", fg: "#1f2937" },
-  awaiting_classification: { bg: "#fef9c3", fg: "#854d0e" },
-  needs_review: { bg: "#dbeafe", fg: "#1d4ed8" },
-  needs_rework: { bg: "#fee2e2", fg: "#991b1b" },
-  monitor: { bg: "#e0f2fe", fg: "#075985" },
-  defect: { bg: "#fde68a", fg: "#92400e" },
-  quarantine: { bg: "#fecaca", fg: "#7f1d1d" },
-  cleared: { bg: "#dcfce7", fg: "#166534" },
-  no_defect: { bg: "#d1fae5", fg: "#065f46" },
-  resolved: { bg: "#e5e7eb", fg: "#111827" },
-};
-
-const getStatusLabel = (value) => STATUS_OPTIONS.find((option) => option.value === value)?.label || value;
-
-const statusBadgeStyle = (status) => {
-  const palette = STATUS_TOKENS[status] || { bg: "#e5e7eb", fg: "#111" };
-  return {
-    backgroundColor: palette.bg,
-    color: palette.fg,
-    padding: "0.15rem 0.6rem",
-    borderRadius: "999px",
-    fontSize: "0.85rem",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-  };
-};
-
-const formatTimestamp = (seconds) => new Date(seconds * 1000).toLocaleString();
-
 const InventoryPage = () => {
   const [files, setFiles] = useState([]);
+  const fileInputRef = useRef(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [classifying, setClassifying] = useState(false);
-  const [error, setError] = useState("");
-  const [statusMessage, setStatusMessage] = useState("");
   const [activeItemId, setActiveItemId] = useState(null);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
-  const [filters, setFilters] = useState({ status: "all", search: "", sort: "created_desc" });
-  const [batchForm, setBatchForm] = useState({ status: "", owner: "", notes: "", appendNotes: true });
+  const [filters, setFilters] = useState({
+    status: "all",
+    search: "",
+    sort: "created_desc",
+  });
+  const [batchForm, setBatchForm] = useState({
+    status: "",
+    owner: "",
+    notes: "",
+    appendNotes: true,
+  });
   const [aiInsights, setAiInsights] = useState([]);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [editDraft, setEditDraft] = useState(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
 
-  const fetchInventory = React.useCallback(async () => {
+  const showToast = useCallback((severity, message) => {
+    setSnackbar({ open: true, severity, message });
+  }, []);
+
+  const handleToastClose = useCallback((_, reason) => {
+    if (reason === "clickaway") return;
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  }, []);
+
+  const fetchInventory = useCallback(async () => {
     try {
       const res = await fetch("/api/inventory");
       if (!res.ok) throw new Error("Failed to load inventory");
       const data = await res.json();
       setItems(data);
     } catch (err) {
-      setError(err.message || "Failed to load inventory");
+      showToast("error", err.message || "Failed to load inventory");
     }
-  }, []);
+  }, [showToast]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchInventory();
   }, [fetchInventory]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setSelectedIds((prev) => {
-      if (!prev.size) {
-        return prev;
-      }
+      if (!prev.size) return prev;
       const next = new Set();
       items.forEach((item) => {
-        if (prev.has(item.id)) {
-          next.add(item.id);
-        }
+        if (prev.has(item.id)) next.add(item.id);
       });
       return next.size === prev.size ? prev : next;
     });
   }, [items]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedIds.size === 0 && aiInsights.length) {
       setAiInsights([]);
     }
   }, [selectedIds, aiInsights.length]);
 
-  const activeItem = React.useMemo(
+  const activeItem = useMemo(
     () => items.find((item) => item.id === activeItemId) || null,
     [items, activeItemId]
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (activeItem) {
       setEditDraft({
         name: activeItem.name,
@@ -304,7 +486,7 @@ const InventoryPage = () => {
     }
   }, [activeItem]);
 
-  const processedItems = React.useMemo(() => {
+  const processedItems = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
     const filtered = items.filter((item) => {
       const matchesStatus = filters.status === "all" || item.status === filters.status;
@@ -329,31 +511,38 @@ const InventoryPage = () => {
     return sorted;
   }, [items, filters]);
 
-  const summary = React.useMemo(() => {
+  const summary = useMemo(() => {
+    const base = {
+      total: items.length,
+      awaitingReview: 0,
+      inReview: 0,
+      needsAttention: 0,
+      cleared: 0,
+      avgScore: 0,
+    };
     if (!items.length) {
-      return { total: 0, flagged: 0, unclassified: 0, avgScore: 0 };
+      return base;
     }
-    const flaggedStatuses = new Set(["defect", "needs_rework", "quarantine"]);
     const stats = items.reduce(
       (acc, item) => {
-        if (flaggedStatuses.has(item.status)) {
-          acc.flagged += 1;
-        }
-        if (item.status === "unclassified" || item.status === "awaiting_classification") {
-          acc.unclassified += 1;
-        }
+        if (item.status === "awaiting_review") acc.awaitingReview += 1;
+        if (item.status === "in_review") acc.inReview += 1;
+        if (item.status === "needs_attention") acc.needsAttention += 1;
+        if (item.status === "cleared") acc.cleared += 1;
         if (typeof item.score === "number") {
           acc.scored += 1;
           acc.sumScore += item.score;
         }
         return acc;
       },
-      { flagged: 0, unclassified: 0, sumScore: 0, scored: 0 }
+      { awaitingReview: 0, inReview: 0, needsAttention: 0, cleared: 0, scored: 0, sumScore: 0 }
     );
     return {
       total: items.length,
-      flagged: stats.flagged,
-      unclassified: stats.unclassified,
+      awaitingReview: stats.awaitingReview,
+      inReview: stats.inReview,
+      needsAttention: stats.needsAttention,
+      cleared: stats.cleared,
       avgScore: stats.scored ? stats.sumScore / stats.scored : 0,
     };
   }, [items]);
@@ -363,13 +552,15 @@ const InventoryPage = () => {
     setFiles(selected);
   };
 
+  const handleRemoveFile = (index) => {
+    setFiles((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
   const handleUpload = async () => {
     if (!files.length) {
-      setError("Please select one or more images to upload.");
+      showToast("warning", "Select one or more images to upload.");
       return;
     }
-    setError("");
-    setStatusMessage("");
     setLoading(true);
     try {
       const payloadItems = await Promise.all(
@@ -402,97 +593,101 @@ const InventoryPage = () => {
       setItems(data);
       setFiles([]);
       setSelectedIds(new Set());
-      setStatusMessage(`Uploaded ${payloadItems.length} item(s).`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      showToast("success", `Uploaded ${payloadItems.length} item(s).`);
+      handleClassify({ autoTriggered: true });
     } catch (err) {
-      setError(err.message || "Upload failed");
+      showToast("error", err.message || "Upload failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClassify = async () => {
-    setError("");
-    setStatusMessage("");
-    setClassifying(true);
-    try {
-      const res = await fetch("/api/inventory/classify", { method: "POST" });
+  const handleClassify = useCallback(
+    async ({ autoTriggered = false } = {}) => {
+      setClassifying(true);
+      try {
+        const res = await fetch("/api/inventory/classify", { method: "POST" });
+        if (!res.ok) {
+          const body = await res.json();
+          throw new Error(body.detail || "Classification failed");
+        }
+        const data = await res.json();
+        setItems(data);
+        const successMessage = autoTriggered
+          ? "Auto-classification finished for the latest uploads."
+          : "Classification completed across the current inventory.";
+        showToast("success", successMessage);
+      } catch (err) {
+        showToast("error", err.message || "Classification failed");
+      } finally {
+        setClassifying(false);
+      }
+    },
+    [showToast]
+  );
+
+  const patchItem = useCallback(
+    async (itemId, changes, options = {}) => {
+      const payload = { ...changes };
+      Object.keys(payload).forEach((key) => {
+        if (payload[key] === undefined) delete payload[key];
+      });
+      if (!Object.keys(payload).length) {
+        return null;
+      }
+      const res = await fetch(`/api/inventory/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
       if (!res.ok) {
         const body = await res.json();
-        throw new Error(body.detail || "Classification failed");
+        throw new Error(body.detail || "Update failed");
       }
-      const data = await res.json();
-      setItems(data);
-      setStatusMessage("Classification completed across the current inventory.");
-    } catch (err) {
-      setError(err.message || "Classification failed");
-    } finally {
-      setClassifying(false);
-    }
-  };
-
-  const patchItem = React.useCallback(async (itemId, changes, options = {}) => {
-    const payload = { ...changes };
-    Object.keys(payload).forEach((key) => {
-      if (payload[key] === undefined) {
-        delete payload[key];
+      const updated = await res.json();
+      setItems((prev) => prev.map((item) => (item.id === itemId ? updated : item)));
+      if (options.successMessage) {
+        showToast("success", options.successMessage);
       }
-    });
-    if (!Object.keys(payload).length) {
-      return null;
-    }
-    const res = await fetch(`/api/inventory/${itemId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const body = await res.json();
-      throw new Error(body.detail || "Update failed");
-    }
-    const updated = await res.json();
-    setItems((prev) => prev.map((item) => (item.id === itemId ? updated : item)));
-    if (options.successMessage) {
-      setStatusMessage(options.successMessage);
-    }
-    return updated;
-  }, []);
+      return updated;
+    },
+    [showToast]
+  );
 
   const handleQuickStatusChange = async (item, nextStatus) => {
-    if (nextStatus === item.status) {
-      return;
-    }
+    if (nextStatus === item.status) return;
     try {
-      setError("");
-      await patchItem(item.id, { status: nextStatus }, { successMessage: `Updated status for ${item.name}.` });
+      await patchItem(item.id, { status: nextStatus }, {
+        successMessage: `Updated status for ${item.name}.`,
+      });
     } catch (err) {
-      setStatusMessage("");
-      setError(err.message || "Failed to update status");
+      showToast("error", err.message || "Failed to update status");
     }
   };
 
   const selectionCount = selectedIds.size;
   const hasSelection = selectionCount > 0;
-  const allVisibleSelected = processedItems.length > 0 && processedItems.every((item) => selectedIds.has(item.id));
+  const allVisibleSelected =
+    processedItems.length > 0 &&
+    processedItems.every((item) => selectedIds.has(item.id));
 
   const handleBatchApply = async () => {
     if (!hasSelection) {
-      setError("Select at least one item to run a batch update.");
+      showToast("warning", "Select at least one item to run a batch update.");
       return;
     }
     if (!batchForm.status && !batchForm.owner && !batchForm.notes.trim()) {
-      setError("Provide at least one field to update in the batch form.");
+      showToast(
+        "warning",
+        "Provide at least one field to update in the batch form."
+      );
       return;
     }
-    setError("");
-    setStatusMessage("");
     try {
       const payload = { item_ids: Array.from(selectedIds) };
-      if (batchForm.status) {
-        payload.status = batchForm.status;
-      }
-      if (batchForm.owner) {
-        payload.owner = batchForm.owner;
-      }
+      if (batchForm.status) payload.status = batchForm.status;
+      if (batchForm.owner) payload.owner = batchForm.owner;
       const trimmedNotes = batchForm.notes.trim();
       if (trimmedNotes) {
         payload.notes = trimmedNotes;
@@ -511,19 +706,17 @@ const InventoryPage = () => {
       setItems(data);
       setSelectedIds(new Set());
       setBatchForm({ status: "", owner: "", notes: "", appendNotes: true });
-      setStatusMessage("Batch update applied successfully.");
+      showToast("success", "Batch update applied successfully.");
     } catch (err) {
-      setError(err.message || "Batch update failed");
+      showToast("error", err.message || "Batch update failed");
     }
   };
 
   const handleAIInsights = async () => {
     if (!hasSelection) {
-      setError("Select at least one item to request AI recommendations.");
+      showToast("warning", "Select items to request AI recommendations.");
       return;
     }
-    setError("");
-    setStatusMessage("");
     setInsightsLoading(true);
     try {
       const res = await fetch("/api/inventory/ai-insights", {
@@ -538,14 +731,16 @@ const InventoryPage = () => {
       const data = await res.json();
       setAiInsights(data.insights || []);
       if (data.missing && data.missing.length) {
-        setError(`Some items were not found: ${data.missing.join(", ")}`);
+        showToast(
+          "warning",
+          `Some items were not found: ${data.missing.join(", ")}`
+        );
       } else {
-        setError("");
+        showToast("success", "AI recommendations ready for your selection.");
       }
-      setStatusMessage("AI recommendations prepared for the current selection.");
     } catch (err) {
       setAiInsights([]);
-      setError(err.message || "Unable to retrieve AI insights");
+      showToast("error", err.message || "Unable to retrieve AI insights");
     } finally {
       setInsightsLoading(false);
     }
@@ -553,7 +748,6 @@ const InventoryPage = () => {
 
   const applyInsight = async (insight) => {
     try {
-      setError("");
       await patchItem(
         insight.item_id,
         {
@@ -565,7 +759,7 @@ const InventoryPage = () => {
         { successMessage: `Applied AI plan to ${insight.name}.` }
       );
     } catch (err) {
-      setError(err.message || "Failed to apply AI recommendation");
+      showToast("error", err.message || "Failed to apply AI recommendation");
     }
   };
 
@@ -594,37 +788,28 @@ const InventoryPage = () => {
   };
 
   const handleEditDraftChange = (field, value) => {
-    setEditDraft((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setEditDraft((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleActiveItemSave = async () => {
-    if (!activeItem || !editDraft) {
-      return;
-    }
+    if (!activeItem || !editDraft) return;
     const payload = {};
     const trimmedName = editDraft.name.trim();
-    if (trimmedName && trimmedName !== activeItem.name) {
-      payload.name = trimmedName;
-    }
-    if (editDraft.status && editDraft.status !== activeItem.status) {
+    if (trimmedName && trimmedName !== activeItem.name) payload.name = trimmedName;
+    if (editDraft.status && editDraft.status !== activeItem.status)
       payload.status = editDraft.status;
-    }
-    if (editDraft.owner !== (activeItem.owner || "")) {
+    if (editDraft.owner !== (activeItem.owner || ""))
       payload.owner = editDraft.owner;
-    }
-    if ((editDraft.notes || "") !== (activeItem.notes || "")) {
+    if ((editDraft.notes || "") !== (activeItem.notes || ""))
       payload.notes = editDraft.notes;
-    }
     if (!Object.keys(payload).length) {
-      setStatusMessage("No changes detected for this item.");
+      showToast("info", "No changes detected for this item.");
       return;
     }
     try {
-      setError("");
-      const updated = await patchItem(activeItem.id, payload, { successMessage: `Updated ${activeItem.name}.` });
+      const updated = await patchItem(activeItem.id, payload, {
+        successMessage: `Updated ${activeItem.name}.`,
+      });
       if (updated) {
         setEditDraft({
           name: updated.name,
@@ -634,7 +819,7 @@ const InventoryPage = () => {
         });
       }
     } catch (err) {
-      setError(err.message || "Failed to update the item");
+      showToast("error", err.message || "Failed to update the item");
     }
   };
 
@@ -644,351 +829,510 @@ const InventoryPage = () => {
   };
 
   return (
-    <main>
-      <section>
-        <h1>Inventory Operations Console</h1>
-        <p>
-          Manage production lots, capture analyst notes, and let the ConvNeXt model highlight the parts that
-          need urgent attention.
-        </p>
-      </section>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Stack spacing={4}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Inventory manager
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Manage production lots, capture analyst notes, and let the AI model
+            spotlight the parts that need urgent attention.
+          </Typography>
+        </Box>
 
-      {(error || statusMessage) && (
-        <section>
-          {error && <p style={{ color: "crimson" }}>{error}</p>}
-          {statusMessage && !error && <p style={{ color: "#166534" }}>{statusMessage}</p>}
-        </section>
-      )}
+        <Grid container spacing={2}>
+          {[
+            { label: "Total lots", value: summary.total },
+            { label: "Needs attention", value: summary.needsAttention },
+            { label: "Awaiting review", value: summary.awaitingReview },
+            { label: "In review", value: summary.inReview },
+            { label: "Cleared", value: summary.cleared },
+            { label: "Avg defect prob", value: summary.avgScore.toFixed(3) },
+          ].map((card) => (
+            <Grid item xs={12} sm={6} md={4} lg={2} key={card.label}>
+              <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: "1px solid #e4e7ec" }}>
+                <Typography variant="overline" color="text.secondary">
+                  {card.label}
+                </Typography>
+                <Typography variant="h4">{card.value}</Typography>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
 
-      <section>
-        <div
-          className="grid"
-          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}
-        >
-          <article>
-            <header>Total Lots</header>
-            <strong style={{ fontSize: "1.8rem" }}>{summary.total}</strong>
-          </article>
-          <article>
-            <header>Flagged</header>
-            <strong style={{ fontSize: "1.8rem" }}>{summary.flagged}</strong>
-          </article>
-          <article>
-            <header>Awaiting Intake</header>
-            <strong style={{ fontSize: "1.8rem" }}>{summary.unclassified}</strong>
-          </article>
-          <article>
-            <header>Avg. Defect Prob.</header>
-            <strong style={{ fontSize: "1.8rem" }}>{summary.avgScore.toFixed(3)}</strong>
-          </article>
-        </div>
-      </section>
+        <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: "1px solid #e4e7ec" }}>
+          <Stack spacing={2}>
+            <Typography variant="h6">Upload new images</Typography>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "center" }}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                hidden
+                accept="image/png, image/jpeg"
+                multiple
+                onChange={handleFileChange}
+              />
+              <Button
+                variant="outlined"
+                startIcon={<UploadFileIcon />}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {files.length ? "Add more images" : "Select images"}
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleUpload}
+                disabled={loading}
+                startIcon={
+                  loading ? (
+                    <CircularProgress size={18} color="inherit" />
+                  ) : (
+                    <CloudUploadIcon />
+                  )
+                }
+              >
+                {loading ? "Uploading..." : "Upload"}
+              </Button>
+            </Stack>
 
-      <section>
-        <h2>Intake & Classification</h2>
-        <div className="grid" style={{ gap: "1rem" }}>
-          <label htmlFor="inventory-files">
-            Select images (multiple allowed)
-            <input
-              id="inventory-files"
-              type="file"
-              accept="image/png, image/jpeg"
-              multiple
-              onChange={handleFileChange}
-            />
-          </label>
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "flex-end" }}>
-            <button type="button" onClick={handleUpload} aria-busy={loading} disabled={loading}>
-              {loading ? "Uploading..." : "Upload to Inventory"}
-            </button>
-            <button type="button" onClick={handleClassify} aria-busy={classifying} disabled={classifying}>
-              {classifying ? "Classifying..." : "Classify All"}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <h2>Command Center</h2>
-        <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-          <label>
-            Search by name, owner, or notes
-            <input
-              type="search"
-              value={filters.search}
-              onChange={(event) => handleFilterChange("search", event.target.value)}
-              placeholder="e.g. Lot 42"
-            />
-          </label>
-          <label>
-            Status filter
-            <select value={filters.status} onChange={(event) => handleFilterChange("status", event.target.value)}>
-              <option value="all">All statuses</option>
-              {STATUS_OPTIONS.map((status) => (
-                <option key={status.value} value={status.value}>
-                  {status.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Sort by
-            <select value={filters.sort} onChange={(event) => handleFilterChange("sort", event.target.value)}>
-              {SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </section>
-
-      <section>
-        <header>
-          <h2>Batch Operations</h2>
-          <p>{hasSelection ? `${selectionCount} item(s) selected` : "Select rows to unlock batch commands."}</p>
-        </header>
-        <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
-          <label>
-            Set new status
-            <select value={batchForm.status} onChange={(event) => setBatchForm((prev) => ({ ...prev, status: event.target.value }))}>
-              <option value="">Keep as-is</option>
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Assign owner
-            <select value={batchForm.owner} onChange={(event) => setBatchForm((prev) => ({ ...prev, owner: event.target.value }))}>
-              {OWNER_PRESETS.map((owner) => (
-                <option key={owner || "unassigned"} value={owner}>
-                  {owner || "Unassigned"}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Notes
-            <textarea
-              rows={2}
-              value={batchForm.notes}
-              onChange={(event) => setBatchForm((prev) => ({ ...prev, notes: event.target.value }))}
-              placeholder="Inspection notes, containment plan, etc."
-            />
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-            <input
-              type="checkbox"
-              checked={batchForm.appendNotes}
-              onChange={(event) => setBatchForm((prev) => ({ ...prev, appendNotes: event.target.checked }))}
-              disabled={!batchForm.notes.trim()}
-            />
-            Append notes instead of replacing
-          </label>
-        </div>
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
-          <button type="button" onClick={handleBatchApply} disabled={!hasSelection}>
-            Apply batch update
-          </button>
-          <button type="button" onClick={handleAIInsights} aria-busy={insightsLoading} disabled={!hasSelection || insightsLoading}>
-            {insightsLoading ? "Analyzing with AI..." : "Get AI recommendations"}
-          </button>
-        </div>
-      </section>
-
-      {aiInsights.length > 0 && (
-        <section>
-          <h2>AI Recommendations</h2>
-          <div
-            className="grid"
-            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem" }}
-          >
-            {aiInsights.map((insight) => (
-              <article key={insight.item_id}>
-                <header>
-                  <strong>{insight.name}</strong>
-                  <p style={{ margin: 0 }}>Confidence: {insight.confidence ?? "--"}</p>
-                </header>
-                <p style={{ ...statusBadgeStyle(insight.recommended_status), width: "fit-content", margin: "0.25rem 0" }}>
-                  {getStatusLabel(insight.recommended_status)}
-                </p>
-                <p>{insight.summary}</p>
-                <p style={{ fontSize: "0.9rem", color: "#475569" }}>Route to: {insight.owner_hint || "Unassigned"}</p>
-                <button type="button" onClick={() => applyInsight(insight)}>
-                  Apply recommendation
-                </button>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section>
-        <h2>Items</h2>
-        {processedItems.length === 0 && <p>No items match the current filters.</p>}
-        {processedItems.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>
-                  <input
-                    type="checkbox"
-                    aria-label="Select all visible items"
-                    checked={allVisibleSelected}
-                    onChange={(event) => toggleSelectAll(event.target.checked)}
+            {files.length > 0 && (
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                {files.map((file, idx) => (
+                  <Chip
+                    key={`${file.name}-${idx}`}
+                    label={file.name}
+                    onDelete={() => handleRemoveFile(idx)}
                   />
-                </th>
-                <th>Preview</th>
-                <th>Details</th>
-                <th>Status</th>
-                <th>Prob (defect)</th>
-                <th>Created</th>
-                <th>Notes</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {processedItems.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      aria-label={`Select ${item.name}`}
-                      checked={selectedIds.has(item.id)}
-                      onChange={() => toggleSelection(item.id)}
-                    />
-                  </td>
-                  <td>
-                    <img
-                      src={item.image_path}
-                      alt={item.name}
-                      style={{ width: "72px", height: "72px", objectFit: "cover", borderRadius: "6px" }}
-                    />
-                  </td>
-                  <td>
-                    <strong>{item.name}</strong>
-                    <p style={{ margin: "0.2rem 0", fontSize: "0.9rem" }}>Owner: {item.owner || "Unassigned"}</p>
-                    <p style={{ margin: "0", fontSize: "0.8rem", color: "#475569" }}>ID: {item.id}</p>
-                  </td>
-                  <td>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-                      <span style={statusBadgeStyle(item.status)}>{getStatusLabel(item.status)}</span>
-                      <select value={item.status} onChange={(event) => handleQuickStatusChange(item, event.target.value)}>
-                        {STATUS_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </td>
-                  <td>{typeof item.score === "number" ? item.score.toFixed(3) : "--"}</td>
-                  <td>{formatTimestamp(item.created_at)}</td>
-                  <td style={{ maxWidth: "240px" }}>
-                    {item.notes ? (item.notes.length > 90 ? `${item.notes.slice(0, 90)}...` : item.notes) : "--"}
-                  </td>
-                  <td>
-                    <button type="button" onClick={() => setActiveItemId(item.id)}>
-                      Inspect
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+                ))}
+              </Stack>
+            )}
+          </Stack>
+        </Paper>
 
-      {activeItem && editDraft && (
-        <dialog open>
-          <article>
-            <header>
-              <h3>{activeItem.name}</h3>
-              <button aria-label="Close" onClick={closeDialog} style={{ float: "right" }}>
-                ✕
-              </button>
-            </header>
-            <p>Status: {getStatusLabel(activeItem.status)}</p>
-            <p>Owner: {activeItem.owner || "Unassigned"}</p>
-            {typeof activeItem.score === "number" && (
-              <p>Probability (has defect): {activeItem.score.toFixed(4)}</p>
+        <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: "1px solid #e4e7ec" }}>
+          <Typography variant="h6" gutterBottom>
+            Filters
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                label="Search"
+                placeholder="Lot ID, owner, notes"
+                value={filters.search}
+                onChange={(event) => handleFilterChange("search", event.target.value)}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth>
+                <InputLabel>Status filter</InputLabel>
+                <Select
+                  label="Status filter"
+                  value={filters.status}
+                  onChange={(event) => handleFilterChange("status", event.target.value)}
+                >
+                  <MenuItem value="all">All statuses</MenuItem>
+                  {STATUS_OPTIONS.map((status) => (
+                    <MenuItem key={status.value} value={status.value}>
+                      {status.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth>
+                <InputLabel>Sort by</InputLabel>
+                <Select
+                  label="Sort by"
+                  value={filters.sort}
+                  onChange={(event) => handleFilterChange("sort", event.target.value)}
+                >
+                  {SORT_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </Paper>
+
+        {hasSelection && (
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: "1px solid #e4e7ec" }}>
+            <Stack spacing={2}>
+              <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "center" }}>
+                <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                  Batch operations
+                </Typography>
+                <Chip
+                  label={`${selectionCount} selected`}
+                  color="primary"
+                />
+              </Stack>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth>
+                    <InputLabel>Set new status</InputLabel>
+                    <Select
+                      label="Set new status"
+                      value={batchForm.status}
+                      onChange={(event) =>
+                        setBatchForm((prev) => ({ ...prev, status: event.target.value }))
+                      }
+                    >
+                      <MenuItem value="">Keep as-is</MenuItem>
+                      {STATUS_OPTIONS.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth>
+                    <InputLabel>Assign owner</InputLabel>
+                    <Select
+                      label="Assign owner"
+                      value={batchForm.owner}
+                      onChange={(event) =>
+                        setBatchForm((prev) => ({ ...prev, owner: event.target.value }))
+                      }
+                    >
+                      {OWNER_PRESETS.map((owner) => (
+                        <MenuItem key={owner || "unassigned"} value={owner}>
+                          {owner || "Unassigned"}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    label="Notes"
+                    multiline
+                    minRows={2}
+                    value={batchForm.notes}
+                    placeholder="Inspection plan, containment action, etc."
+                    onChange={(event) =>
+                      setBatchForm((prev) => ({ ...prev, notes: event.target.value }))
+                    }
+                    fullWidth
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={batchForm.appendNotes}
+                        onChange={(event) =>
+                          setBatchForm((prev) => ({
+                            ...prev,
+                            appendNotes: event.target.checked,
+                          }))
+                        }
+                        disabled={!batchForm.notes.trim()}
+                      />
+                    }
+                    label="Append notes instead of replacing"
+                  />
+                </Grid>
+              </Grid>
+              <Stack direction="row" spacing={2} flexWrap="wrap">
+                <Button
+                  variant="contained"
+                  onClick={handleBatchApply}
+                  disabled={!hasSelection}
+                  startIcon={<ManageAccountsIcon />}
+                >
+                  Apply batch update
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleAIInsights}
+                  disabled={!hasSelection || insightsLoading}
+                  startIcon={
+                    insightsLoading ? (
+                      <CircularProgress size={18} color="inherit" />
+                    ) : (
+                      <InsightsIcon />
+                    )
+                  }
+                >
+                  {insightsLoading ? "Analyzing..." : "Get AI recommendations"}
+                </Button>
+              </Stack>
+            </Stack>
+          </Paper>
+        )}
+
+        {aiInsights.length > 0 && (
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: "1px solid #e4e7ec" }}>
+            <Typography variant="h6" gutterBottom>
+              AI recommendations
+            </Typography>
+            <Grid container spacing={2}>
+              {aiInsights.map((insight) => (
+                <Grid item xs={12} md={4} key={insight.item_id}>
+                  <Card variant="outlined" sx={{ borderRadius: 4 }}>
+                    <CardContent>
+                      <Stack spacing={1}>
+                        <Typography variant="subtitle1">{insight.name}</Typography>
+                        <StatusChip status={insight.recommended_status} />
+                        <Typography variant="body2" color="text.secondary">
+                          Confidence: {insight.confidence ?? "--"}
+                        </Typography>
+                        <Typography variant="body2">{insight.summary}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Route to: {insight.owner_hint || "Unassigned"}
+                        </Typography>
+                      </Stack>
+                    </CardContent>
+                    <CardActions>
+                      <Button size="small" onClick={() => applyInsight(insight)}>
+                        Apply recommendation
+                      </Button>
+                    </CardActions>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Paper>
+        )}
+
+        <Paper elevation={0} sx={{ borderRadius: 4, border: "1px solid #e4e7ec" }}>
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Items
+            </Typography>
+            {processedItems.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                No items match the current filters.
+              </Typography>
+            ) : (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          checked={allVisibleSelected}
+                          onChange={(event) => toggleSelectAll(event.target.checked)}
+                          indeterminate={
+                            hasSelection && !allVisibleSelected
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>Preview</TableCell>
+                      <TableCell>Details</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Prob (defect)</TableCell>
+                      <TableCell>Created</TableCell>
+                      <TableCell>Notes</TableCell>
+                      <TableCell align="right">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {processedItems.map((item) => (
+                      <TableRow key={item.id} hover>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={selectedIds.has(item.id)}
+                            onChange={() => toggleSelection(item.id)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Avatar
+                            variant="rounded"
+                            src={item.image_path}
+                            alt={item.name}
+                            sx={{ width: 72, height: 72, borderRadius: 2 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="subtitle2">{item.name}</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Owner: {item.owner || "Unassigned"}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            ID: {item.id}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Stack spacing={1}>
+                            <StatusChip status={item.status} />
+                            <FormControl size="small">
+                              <Select
+                                value={item.status}
+                                onChange={(event) =>
+                                  handleQuickStatusChange(item, event.target.value)
+                                }
+                              >
+                                {STATUS_OPTIONS.map((option) => (
+                                  <MenuItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          {typeof item.score === "number"
+                            ? item.score.toFixed(3)
+                            : "--"}
+                        </TableCell>
+                        <TableCell>{formatTimestamp(item.created_at)}</TableCell>
+                        <TableCell sx={{ maxWidth: 240 }}>
+                          {item.notes
+                            ? item.notes.length > 90
+                              ? `${item.notes.slice(0, 90)}...`
+                              : item.notes
+                            : "--"}
+                        </TableCell>
+                        <TableCell align="right">
+                          <Button
+                            size="small"
+                            startIcon={<VisibilityIcon />}
+                            onClick={() => setActiveItemId(item.id)}
+                          >
+                            Inspect
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             )}
-            {typeof activeItem.label === "number" && (
-              <p>Label: {activeItem.label === 1 ? "Has defect" : "No defect"}</p>
-            )}
-            <p>Created: {formatTimestamp(activeItem.created_at)}</p>
-            {activeItem.notes && <p>Notes: {activeItem.notes}</p>}
-            <img src={activeItem.image_path} alt={activeItem.name} style={{ maxWidth: "100%" }} />
-            <hr />
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                handleActiveItemSave();
-              }}
-            >
-              <label>
-                Name
-                <input
-                  type="text"
+          </Box>
+        </Paper>
+
+        {activeItem && editDraft && (
+          <Dialog open onClose={closeDialog} maxWidth="sm" fullWidth>
+            <DialogTitle>
+              {activeItem.name}
+              <IconButton
+                aria-label="close"
+                onClick={closeDialog}
+                sx={{ position: "absolute", right: 16, top: 16 }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Stack spacing={2}>
+                <Stack direction="row" spacing={2}>
+                  <StatusChip status={activeItem.status} />
+                  <Typography variant="body2" color="text.secondary">
+                    Owner: {activeItem.owner || "Unassigned"}
+                  </Typography>
+                </Stack>
+                {typeof activeItem.score === "number" && (
+                  <Typography variant="body2">
+                    Probability (has defect): {activeItem.score.toFixed(4)}
+                  </Typography>
+                )}
+                {typeof activeItem.label === "number" && (
+                  <Typography variant="body2">
+                    Label: {activeItem.label === 1 ? "Has defect" : "No defect"}
+                  </Typography>
+                )}
+                <Typography variant="body2">
+                  Created: {formatTimestamp(activeItem.created_at)}
+                </Typography>
+                {activeItem.notes && (
+                  <Typography variant="body2">Notes: {activeItem.notes}</Typography>
+                )}
+                <Box sx={{ borderRadius: 3, overflow: "hidden", border: "1px solid #e4e7ec" }}>
+                  <img
+                    src={activeItem.image_path}
+                    alt={activeItem.name}
+                    style={{ width: "100%", maxHeight: 320, objectFit: "contain" }}
+                  />
+                </Box>
+                <Divider />
+                <TextField
+                  label="Name"
                   value={editDraft.name}
                   onChange={(event) => handleEditDraftChange("name", event.target.value)}
+                  fullWidth
                 />
-              </label>
-              <label>
-                Status
-                <select value={editDraft.status} onChange={(event) => handleEditDraftChange("status", event.target.value)}>
-                  {STATUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Owner
-                <select value={editDraft.owner} onChange={(event) => handleEditDraftChange("owner", event.target.value)}>
-                  {OWNER_PRESETS.map((owner) => (
-                    <option key={owner || "unassigned"} value={owner}>
-                      {owner || "Unassigned"}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Notes
-                <textarea
-                  rows={4}
+                <FormControl fullWidth>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    label="Status"
+                    value={editDraft.status}
+                    onChange={(event) => handleEditDraftChange("status", event.target.value)}
+                  >
+                    {STATUS_OPTIONS.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth>
+                  <InputLabel>Owner</InputLabel>
+                  <Select
+                    label="Owner"
+                    value={editDraft.owner}
+                    onChange={(event) => handleEditDraftChange("owner", event.target.value)}
+                  >
+                    {OWNER_PRESETS.map((owner) => (
+                      <MenuItem key={owner || "unassigned"} value={owner}>
+                        {owner || "Unassigned"}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <TextField
+                  label="Notes"
+                  multiline
+                  minRows={3}
                   value={editDraft.notes}
                   onChange={(event) => handleEditDraftChange("notes", event.target.value)}
                 />
-              </label>
-              <button type="submit">Save changes</button>
-            </form>
-          </article>
-        </dialog>
-      )}
-    </main>
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={closeDialog}>Cancel</Button>
+              <Button variant="contained" onClick={handleActiveItemSave}>
+                Save changes
+              </Button>
+            </DialogActions>
+          </Dialog>
+        )}
+      </Stack>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleToastClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleToastClose}
+          severity={snackbar.severity}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Container>
   );
 };
 
-// Define the top-level App component that wires together the layout and routes.
-const App = () => {
-  // Render the shared layout, navigation, and route switcher.
-  return (
-    <div className="container">
-      <NavBar />
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/predict" element={<PredictPage />} />
-        <Route path="/inventory" element={<InventoryPage />} />
-      </Routes>
-    </div>
-  );
-};
+const App = () => (
+  <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+    <NavBar />
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/predict" element={<PredictPage />} />
+      <Route path="/inventory" element={<InventoryPage />} />
+    </Routes>
+  </Box>
+);
 
-// Export the App component as the default export so main.jsx can import it easily.
 export default App;

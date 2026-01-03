@@ -71,8 +71,8 @@ class InventoryItem(BaseModel):
     id: str
     # Human-friendly name provided by the user or generated from the file name.
     name: str
-    # Optional free-form status (e.g., pending, reviewed, defect/no-defect).
-    status: str = "unclassified"
+    # Simplified lifecycle status for the lot.
+    status: str = "awaiting_review"
     # Optional ownership/assignee to reflect who is responsible for the part.
     owner: str = ""
     # When the item was created (seconds since epoch).
@@ -112,6 +112,15 @@ class InventoryAIInsightsRequest(BaseModel):
     """Schema for requesting AI-driven recommendations for selected items."""
 
     item_ids: list[str] = Field(..., min_length=1)
+
+ALLOWED_STATUSES = {"awaiting_review", "in_review", "needs_attention", "cleared"}
+
+
+def ensure_valid_status(value: str | None) -> str:
+    candidate = (value or "").strip() or "awaiting_review"
+    if candidate not in ALLOWED_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Status '{value}' is not allowed.")
+    return candidate
 
 # Define a response schema to make returned data explicit and documented.
 class PredictResponse(BaseModel):
@@ -268,7 +277,9 @@ def apply_updates(item: InventoryItem, payload: InventoryUpdateRequest) -> Inven
         if candidate:
             data["name"] = candidate
     if payload.status is not None:
-        data["status"] = payload.status.strip() or item.status
+        trimmed_status = payload.status.strip()
+        if trimmed_status:
+            data["status"] = ensure_valid_status(trimmed_status)
     if payload.owner is not None:
         data["owner"] = payload.owner.strip()
     if payload.notes is not None:
@@ -285,37 +296,37 @@ def build_ai_insight(item: InventoryItem) -> dict:
     """Derive heuristic guidance for an inventory item based on model outputs."""
 
     score = item.score if item.score is not None else 0.0
-    recommended_status = "needs_review" if item.score is not None else "awaiting_classification"
-    priority = "medium"
+    has_prediction = item.score is not None
+    recommended_status = "awaiting_review" if not has_prediction else "in_review"
+    priority = "low" if not has_prediction else "medium"
     owner_hint = item.owner or ("Maintenance" if score >= 0.6 else "Quality")
     suggested_note = "Item has not been classified yet. Schedule inspection."
 
-    if item.score is None:
+    if not has_prediction:
         summary = "No prediction data available; prompt the lab to classify this image."
-        priority = "low"
-    elif score >= 0.9:
-        recommended_status = "quarantine"
+    elif score >= 0.85:
+        recommended_status = "needs_attention"
         priority = "critical"
         owner_hint = "Reliability"
-        summary = "Model flags this component as highly likely defective. Quarantine lot immediately."
-        suggested_note = "Hold shipment, escalate to reliability engineering and initiate tear-down analysis."
-    elif score >= 0.75:
-        recommended_status = "needs_rework"
+        summary = "Model flags this component as highly likely defective. Quarantine the lot immediately."
+        suggested_note = "Hold shipment, escalate to reliability engineering, and initiate tear-down analysis."
+    elif score >= 0.65:
+        recommended_status = "needs_attention"
         priority = "high"
         owner_hint = "Maintenance"
-        summary = "High defect probability; prioritize rework and secondary inspection."
+        summary = "Elevated defect probability; prioritize rework and secondary inspection."
         suggested_note = "Route to maintenance for rework and request ultrasonic verification."
-    elif score >= 0.55:
-        recommended_status = "monitor"
+    elif score >= 0.45:
+        recommended_status = "in_review"
         priority = "elevated"
         summary = "Borderline reading; keep under observation and sample additional units."
-        suggested_note = "Add to monitoring queue and capture more samples from same batch."
+        suggested_note = "Add to the monitoring queue and capture more samples from the same batch."
     else:
         recommended_status = "cleared"
         priority = "low"
         owner_hint = item.owner or "Quality"
         summary = "Low likelihood of defect; release after visual confirmation."
-        suggested_note = "Log QA spot check and release to assembly if no manual defects found."
+        suggested_note = "Log QA spot check and release to assembly if no manual defects are found."
 
     return {
         "item_id": item.id,
@@ -352,7 +363,7 @@ def classify_inventory_item(item: InventoryItem) -> InventoryItem:
     # Update item fields.
     item.score = score
     item.label = label
-    item.status = "defect" if label == 1 else "no_defect"
+    item.status = "needs_attention" if label == 1 else "cleared"
     return item
 
 # Define a reusable image preprocessing pipeline to match ConvNeXt expectations.
@@ -440,7 +451,7 @@ async def upload_inventory(payload: InventoryUploadRequest) -> list[InventoryIte
         record = InventoryItem(
             id=item_id,
             name=name,
-            status="unclassified",
+            status=ensure_valid_status(entry.get("status")),
             owner=entry.get("owner", ""),
             created_at=time.time(),
             image_path=f"/inventory/images/{filename}",

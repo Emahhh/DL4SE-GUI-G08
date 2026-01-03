@@ -73,6 +73,8 @@ class InventoryItem(BaseModel):
     name: str
     # Optional free-form status (e.g., pending, reviewed, defect/no-defect).
     status: str = "unclassified"
+    # Optional ownership/assignee to reflect who is responsible for the part.
+    owner: str = ""
     # When the item was created (seconds since epoch).
     created_at: float
     # Relative path (within inventory images directory) where the image is stored for frontend retrieval.
@@ -88,6 +90,28 @@ class InventoryItem(BaseModel):
 class InventoryUploadRequest(BaseModel):
     # List of objects carrying base64-encoded images and optional names.
     items: list[dict] = Field(..., description="List of items with base64 image data and optional name")
+
+
+class InventoryUpdateRequest(BaseModel):
+    """Schema for partial updates to a single inventory item."""
+
+    name: str | None = Field(default=None, max_length=200)
+    status: str | None = Field(default=None, max_length=60)
+    notes: str | None = None
+    owner: str | None = Field(default=None, max_length=120)
+    append_notes: bool = False
+
+
+class InventoryBatchUpdateRequest(InventoryUpdateRequest):
+    """Schema for updating multiple items in one request."""
+
+    item_ids: list[str] = Field(..., min_length=1, description="IDs to update")
+
+
+class InventoryAIInsightsRequest(BaseModel):
+    """Schema for requesting AI-driven recommendations for selected items."""
+
+    item_ids: list[str] = Field(..., min_length=1)
 
 # Define a response schema to make returned data explicit and documented.
 class PredictResponse(BaseModel):
@@ -235,6 +259,77 @@ def save_inventory(items: list[InventoryItem]) -> None:
         json.dump([item.model_dump() for item in items], fh, indent=2)
 
 
+def apply_updates(item: InventoryItem, payload: InventoryUpdateRequest) -> InventoryItem:
+    """Return a new InventoryItem with the requested updates applied."""
+
+    data = item.model_dump()
+    if payload.name is not None:
+        candidate = payload.name.strip()
+        if candidate:
+            data["name"] = candidate
+    if payload.status is not None:
+        data["status"] = payload.status.strip() or item.status
+    if payload.owner is not None:
+        data["owner"] = payload.owner.strip()
+    if payload.notes is not None:
+        existing = data.get("notes", "") or ""
+        incoming = payload.notes.strip()
+        if payload.append_notes and existing:
+            data["notes"] = f"{existing}\n{incoming}" if incoming else existing
+        else:
+            data["notes"] = incoming
+    return InventoryItem(**data)
+
+
+def build_ai_insight(item: InventoryItem) -> dict:
+    """Derive heuristic guidance for an inventory item based on model outputs."""
+
+    score = item.score if item.score is not None else 0.0
+    recommended_status = "needs_review" if item.score is not None else "awaiting_classification"
+    priority = "medium"
+    owner_hint = item.owner or ("Maintenance" if score >= 0.6 else "Quality")
+    suggested_note = "Item has not been classified yet. Schedule inspection."
+
+    if item.score is None:
+        summary = "No prediction data available; prompt the lab to classify this image."
+        priority = "low"
+    elif score >= 0.9:
+        recommended_status = "quarantine"
+        priority = "critical"
+        owner_hint = "Reliability"
+        summary = "Model flags this component as highly likely defective. Quarantine lot immediately."
+        suggested_note = "Hold shipment, escalate to reliability engineering and initiate tear-down analysis."
+    elif score >= 0.75:
+        recommended_status = "needs_rework"
+        priority = "high"
+        owner_hint = "Maintenance"
+        summary = "High defect probability; prioritize rework and secondary inspection."
+        suggested_note = "Route to maintenance for rework and request ultrasonic verification."
+    elif score >= 0.55:
+        recommended_status = "monitor"
+        priority = "elevated"
+        summary = "Borderline reading; keep under observation and sample additional units."
+        suggested_note = "Add to monitoring queue and capture more samples from same batch."
+    else:
+        recommended_status = "cleared"
+        priority = "low"
+        owner_hint = item.owner or "Quality"
+        summary = "Low likelihood of defect; release after visual confirmation."
+        suggested_note = "Log QA spot check and release to assembly if no manual defects found."
+
+    return {
+        "item_id": item.id,
+        "name": item.name,
+        "current_status": item.status,
+        "recommended_status": recommended_status,
+        "priority": priority,
+        "owner_hint": owner_hint,
+        "confidence": round(score, 3) if item.score is not None else None,
+        "summary": summary,
+        "suggested_note": suggested_note,
+    }
+
+
 # Classify a single inventory item by loading its stored image.
 def classify_inventory_item(item: InventoryItem) -> InventoryItem:
     # Locate the stored image file; resolve relative path against images dir.
@@ -346,6 +441,7 @@ async def upload_inventory(payload: InventoryUploadRequest) -> list[InventoryIte
             id=item_id,
             name=name,
             status="unclassified",
+            owner=entry.get("owner", ""),
             created_at=time.time(),
             image_path=f"/inventory/images/{filename}",
             notes=entry.get("notes", ""),
@@ -373,6 +469,65 @@ async def classify_inventory() -> list[InventoryItem]:
         updated.append(updated_item)
     save_inventory(updated)
     return updated
+
+
+@app.patch("/api/inventory/{item_id}", response_model=InventoryItem)
+async def update_inventory_item(item_id: str, payload: InventoryUpdateRequest) -> InventoryItem:
+    items = load_inventory()
+    updated_item: InventoryItem | None = None
+    next_items: list[InventoryItem] = []
+    for item in items:
+        if item.id == item_id:
+            updated_item = apply_updates(item, payload)
+            next_items.append(updated_item)
+        else:
+            next_items.append(item)
+
+    if updated_item is None:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+
+    save_inventory(next_items)
+    return updated_item
+
+
+@app.post("/api/inventory/batch-update", response_model=list[InventoryItem])
+async def batch_update_inventory(payload: InventoryBatchUpdateRequest) -> list[InventoryItem]:
+    targets = set(payload.item_ids)
+    if not targets:
+        raise HTTPException(status_code=400, detail="item_ids cannot be empty")
+
+    items = load_inventory()
+    touched = False
+    next_items: list[InventoryItem] = []
+    for item in items:
+        if item.id in targets:
+            touched = True
+            next_items.append(apply_updates(item, payload))
+        else:
+            next_items.append(item)
+
+    if not touched:
+        raise HTTPException(status_code=404, detail="No matching items found")
+
+    save_inventory(next_items)
+    return next_items
+
+
+@app.post("/api/inventory/ai-insights")
+async def ai_insights(payload: InventoryAIInsightsRequest) -> dict:
+    targets = set(payload.item_ids)
+    items = load_inventory()
+    lookup = {item.id: item for item in items}
+    insights = []
+    missing: list[str] = []
+    for item_id in targets:
+        item = lookup.get(item_id)
+        if item is None:
+            missing.append(item_id)
+            continue
+        insights.append(build_ai_insight(item))
+
+    return {"insights": insights, "missing": missing}
 
 
 # Serve inventory images statically from the inventory directory.

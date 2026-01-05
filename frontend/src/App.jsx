@@ -8,7 +8,9 @@ import React, {
   useMemo,
   useCallback,
   useRef,
+  useContext,
 } from "react";
+import { ColorModeContext } from "./main.jsx";
 import {
   Routes,
   Route,
@@ -73,6 +75,9 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import CloseIcon from "@mui/icons-material/Close";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import BoltIcon from "@mui/icons-material/Bolt";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import DashboardPage from "./DashboardPage";
 
 const STATUS_OPTIONS = [
   { value: "awaiting_review", label: "Awaiting Review" },
@@ -129,8 +134,10 @@ const StatusChip = ({ status }) => {
 
 const NavBar = () => {
   const location = useLocation();
+  const colorMode = useContext(ColorModeContext);
   const tabs = [
     { label: "Home", path: "/" },
+    { label: "Dashboard", path: "/dashboard" },
     { label: "Predict", path: "/predict" },
     { label: "Inventory", path: "/inventory" },
   ];
@@ -166,6 +173,14 @@ const NavBar = () => {
             />
           ))}
         </Tabs>
+        <IconButton
+          onClick={colorMode.toggleColorMode}
+          color="inherit"
+          aria-label="Toggle dark mode"
+          sx={{ ml: 1 }}
+        >
+          {colorMode.mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
+        </IconButton>
       </Toolbar>
     </AppBar>
   );
@@ -207,7 +222,7 @@ const LandingPage = () => (
         </Stack>
       </Grid>
       <Grid item xs={12} md={6}>
-        <Card elevation={0} sx={{ borderRadius: 4, border: "1px solid #dfe3eb" }}>
+        <Card elevation={0} sx={{ borderRadius: 4, border: 1, borderColor: "divider" }}>
           <CardContent>
             <Typography variant="overline" color="text.secondary">
               What&apos;s included
@@ -302,7 +317,7 @@ const PredictPage = () => {
     <Container maxWidth="md" sx={{ py: 6 }}>
       <Grid container spacing={4}>
         <Grid item xs={12} md={5}>
-          <Card elevation={0} sx={{ border: "1px solid #dfe3eb", borderRadius: 4 }}>
+          <Card elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 4 }}>
             <CardContent>
               <Typography variant="overline" color="text.secondary">
                 Workflow
@@ -378,7 +393,7 @@ const PredictPage = () => {
               {result && (
                 <Card
                   variant="outlined"
-                  sx={{ borderRadius: 3, bgcolor: "#f8fafc" }}
+                  sx={{ borderRadius: 3, bgcolor: "action.hover" }}
                 >
                   <CardContent>
                     <Typography variant="h6">Prediction</Typography>
@@ -1329,6 +1344,7 @@ const App = () => (
     <NavBar />
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/predict" element={<PredictPage />} />
       <Route path="/inventory" element={<InventoryPage />} />
     </Routes>

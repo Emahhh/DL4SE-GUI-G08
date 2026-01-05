@@ -49,6 +49,11 @@ INVENTORY_DB_PATH = INVENTORY_DIR / "inventory.json"
 # Define the path to the built frontend directory (created by Vite during `npm run build`).
 STATIC_DIR = BACKEND_DIR.parent / "frontend" / "dist"
 
+# Track server start time for uptime calculation.
+import os
+import platform
+START_TIME = time.time()
+
 # Create the FastAPI application instance that will manage routes and middleware.
 app = FastAPI(title="DL4SE Demo API", version="1.0.0")
 
@@ -547,8 +552,22 @@ app.mount("/inventory/images", StaticFiles(directory=INVENTORY_IMAGES_DIR), name
 # Define a simple health endpoint that can be used by load balancers or monitors.
 @app.get("/api/health")
 async def health() -> dict:
-    # Return a small JSON payload indicating the service is alive.
-    return {"status": "ok"}
+    """Return service health status with diagnostic information."""
+    uptime_seconds = time.time() - START_TIME
+    hours, remainder = divmod(int(uptime_seconds), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    
+    return {
+        "status": "ok",
+        "version": "1.0.0",
+        "uptime": f"{hours}h {minutes}m {seconds}s",
+        "uptime_seconds": round(uptime_seconds, 2),
+        "model_loaded": MODEL is not None,
+        "model_path": str(MODEL_PATH.name),
+        "inventory_count": len(load_inventory()),
+        "python_version": platform.python_version(),
+        "platform": platform.system(),
+    }
 
 # Mount the static frontend after API routes so /api/* stays handled by FastAPI, not static files.
 if STATIC_DIR.exists():

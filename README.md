@@ -1,32 +1,23 @@
 # DL4SE Demo (FastAPI + React + PyTorch)
 
-A minimal, single-container web app that serves a ConvNeXt-Tiny PyTorch image classifier via FastAPI and a Vite/React frontend styled with Pico.css.
+A single-container web app that serves a ConvNeXt-Tiny PyTorch image classifier via FastAPI and a Vite/React frontend UI. The app allows users to upload images of ball screw drives, classifies them for defects using a pre-trained model, and persists inventory data in a SQLite database, helping quality engineers manage manufacturing processes.
 
 ## Project Layout
 
-- backend/: FastAPI app, lightweight demo model, requirements.
-- frontend/: Vite/React source.
+- backend/: FastAPI app with PyTorch model inference and SQLite database.
+- frontend/: Vite/React app for user interface.
 - Dockerfile: Multi-stage build that bundles both tiers.
 
-## Prerequisites
+## Setup & Run
 
-- Docker 24+ with buildx enabled.
+1. Run Docker Desktop or Docker daemon. (Prerequisite: Docker 24+ with buildx enabled)
 
-## Quickstart (Docker)
-
-0. Run Docker Desktop or Docker daemon.
-
-1. Build the image (native architecture):
+2. Build the image (native architecture):
    ```bash
    docker build -t dl4se-demo .
    ```
 
-2. Run the container (data saved inside container only):
-   ```bash
-   docker run -p 8000:8000 dl4se-demo
-   ```
-   
-   **OR** Run with persistent data (recommended - saves database to your local machine):
+3. Run the container (data is persisted on the file `backend/app_database.db` in the current directory):
    
    **Mac/Linux:**
    ```bash
@@ -43,38 +34,8 @@ A minimal, single-container web app that serves a ConvNeXt-Tiny PyTorch image cl
    docker run -p 8000:8000 -v "%cd%/backend:/app/backend" dl4se-demo
    ```
 
-3. Open http://localhost:8000 to view the app; API lives at /api/predict.
+4. Open [http://localhost:8000](http://localhost:8000) to view the app.
 
-## Quick Test (Pre-built Docker Image)
-
-For testers who want to quickly run the application without building:
-
-1. **Pull the image from Docker Hub:**
-   ```bash
-   docker pull dariusan3/dl4se-demo-group8:latest
-   ```
-
-2. **Run the container:**
-   ```bash
-   docker run -p 8000:8000 dariusan3/dl4se-demo-group8:latest
-   ```
-
-3. **Open http://localhost:8000** in your browser to use the app.
-
-> **Note:** The `-p 8000:8000` flag is required to expose the port. Without it, the app won't be accessible.
-
-## Cross-Architecture Builds
-
-- Build AMD64 image on ARM (e.g., Apple Silicon):
-  - `docker build --platform=linux/amd64 -t dl4se-demo:amd64 .`
-- Build ARM64 image on AMD64:
-  - `docker build --platform=linux/arm64/v8 -t dl4se-demo:arm64 .`
-- Run either image on matching host or use Docker Desktop emulation.
-
-## Local Development (optional)
-
-- Frontend: `cd frontend && npm install && npm run dev`
-- Backend: `cd backend && python main.py`
 
 ## API Usage
 
@@ -84,35 +45,9 @@ For testers who want to quickly run the application without building:
 - POST /api/inventory/upload with JSON `{ "items": [{ "image_base64": "...", "name": "optional" }] }` to batch upload and persist items
 - POST /api/inventory/classify runs the model over all persisted items and updates status/score/label
 
-## SQLite Database
-
-The project uses a SQLite database (`backend/app_database.db`) for data persistence.
-
-### Initialize the Database
-```bash
-cd backend && python database.py
-```
-
-### View Database (Command Line)
-```bash
-# List all tables
-sqlite3 app_database.db ".tables"
-
-# View table schema
-sqlite3 app_database.db ".schema users"
-
-# Query data
-sqlite3 app_database.db "SELECT * FROM users;"
-sqlite3 app_database.db "SELECT * FROM predictions_log;"
-sqlite3 app_database.db "SELECT * FROM inventory_items;"
-```
-
-### GUI Tools (Optional)
-- **VS Code**: Install the "SQLite Viewer" extension and click on `app_database.db`
-- **DB Browser for SQLite**: Download from https://sqlitebrowser.org/
 
 ## Notes
 
-- Provide a valid `backend/model.pt` convnext_tiny state_dict before running; the server will error if the file is missing or incompatible.
-- Inventory items and images persist under `backend/inventory/` on disk.
-- Static React assets are served by FastAPI with an index.html fallback to keep React Router routes working on refresh.
+- The project uses a SQLite database (`backend/app_database.db`) for data persistence. If you run the database.py script, it will initialize the database with the required tables and sample data.
+- The PyTorch model is a ConvNeXt-Tiny architecture fine-tuned for binary classification of ball screw drive images. The model weights are loaded from `backend/model.pt`. The training code is contained in [a separate repo](https://github.com/Emahhh/DL4SE-project-UPM).
+

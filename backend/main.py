@@ -138,36 +138,54 @@ class PredictResponse(BaseModel):
     # A simple binary label derived from the score using a 0.5 threshold.
     label: int
 
-def inspect_checkpoint() -> None:
-    """Inspect and print diagnostic information about the model checkpoint."""
+def inspect_checkpoint(verbose: bool = False) -> None:
+    """Inspect and print diagnostic information about the model checkpoint.
+    
+    Args:
+        verbose: If True, print detailed checkpoint information. If False, print only summary.
+    """
     if not MODEL_PATH.exists():
         print(f"❌ Model file not found at {MODEL_PATH}")
         return
-    
-    print(f"\n{'='*60}")
-    print(f"🔍 INSPECTING MODEL CHECKPOINT: {MODEL_PATH.name}")
-    print(f"{'='*60}")
     
     try:
         # Load checkpoint
         checkpoint = torch.load(MODEL_PATH, map_location=torch.device("cpu"), weights_only=False)
         
+        # Extract state_dict
+        if isinstance(checkpoint, dict):
+            if "model_state_dict" in checkpoint:
+                state_dict = checkpoint["model_state_dict"]
+            elif "state_dict" in checkpoint:
+                state_dict = checkpoint["state_dict"]
+            else:
+                state_dict = checkpoint
+        else:
+            state_dict = checkpoint
+        
+        # Non-verbose: print only one summary line
+        if not verbose:
+            num_keys = len(state_dict)
+            has_backbone = any(key.startswith("backbone.") for key in state_dict.keys())
+            classifier_keys = [k for k in state_dict.keys() if 'classifier' in k]
+            print(f"✓ Model checkpoint loaded: {num_keys} keys, backbone_prefix={has_backbone}, classifiers={len(classifier_keys)}")
+            return
+        
+        # Verbose mode: print detailed information
+        print(f"\n{'='*60}")
+        print(f"🔍 INSPECTING MODEL CHECKPOINT: {MODEL_PATH.name}")
+        print(f"{'='*60}")
+        
         # Check checkpoint format
         if isinstance(checkpoint, dict):
             print(f"✓ Checkpoint is a dictionary with keys: {list(checkpoint.keys())}")
-            
-            # Extract state_dict
             if "model_state_dict" in checkpoint:
-                state_dict = checkpoint["model_state_dict"]
                 print(f"✓ Found 'model_state_dict' key")
             elif "state_dict" in checkpoint:
-                state_dict = checkpoint["state_dict"]
                 print(f"✓ Found 'state_dict' key")
             else:
-                state_dict = checkpoint
                 print(f"✓ Using checkpoint dict directly as state_dict")
         else:
-            state_dict = checkpoint
             print(f"✓ Checkpoint is a raw state_dict")
         
         # Check for backbone prefix
@@ -197,7 +215,8 @@ def inspect_checkpoint() -> None:
         
     except Exception as e:
         print(f"❌ Error inspecting checkpoint: {e}")
-        print(f"{'='*60}\n")
+        if verbose:
+            print(f"{'='*60}\n")
 
 def load_model() -> torch.nn.Module:
     # Immediately fail with a clear message if the expected model file is absent.
@@ -255,7 +274,7 @@ def load_model() -> torch.nn.Module:
     return model
 
 # Inspect the checkpoint before loading
-inspect_checkpoint()
+inspect_checkpoint(verbose=False) # Set to True for detailed output for debugging
 
 # Load the model once at startup so it can be reused for all incoming requests.
 MODEL = load_model()
@@ -384,6 +403,16 @@ PREPROCESS = T.Compose(
         T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ]
 )
+
+
+class SPAStaticFiles(StaticFiles):
+    """Serve the built SPA and fall back to index.html for client routes."""
+
+    async def get_response(self, path: str, scope):  # type: ignore[override]
+        response = await super().get_response(path, scope)
+        if response.status_code == 404:
+            return await super().get_response("index.html", scope)
+        return response
 
 # Define the prediction endpoint that receives an image and returns model outputs.
 @app.post("/api/predict", response_model=PredictResponse)
@@ -671,8 +700,13 @@ async def health() -> dict:
 
 # Mount the static frontend after API routes so /api/* stays handled by FastAPI, not static files.
 if STATIC_DIR.exists():
-    # Mount the directory at the root path; html=True enables index.html fallback for client-side routing.
-    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+    app.mount("/", SPAStaticFiles(directory=STATIC_DIR, html=True), name="static")
+else:
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_fallback(full_path: str):
+        """Return 404 when the SPA build is missing."""
+        raise HTTPException(status_code=404, detail="Not Found")
 
 # Provide an optional entry point for running the app directly via `python main.py` in development.
 if __name__ == "__main__":

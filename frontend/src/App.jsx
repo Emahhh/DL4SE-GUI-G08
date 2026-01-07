@@ -61,6 +61,7 @@ import {
   LinearProgress,
   CircularProgress,
   FormControlLabel,
+  Link,
 } from "@mui/material";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -70,6 +71,9 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import InsightsIcon from "@mui/icons-material/Insights";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import EngineeringIcon from "@mui/icons-material/Engineering";
+import HubIcon from "@mui/icons-material/Hub";
+import FactoryIcon from "@mui/icons-material/Factory";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import CloseIcon from "@mui/icons-material/Close";
@@ -77,6 +81,8 @@ import Inventory2Icon from "@mui/icons-material/Inventory2";
 import BoltIcon from "@mui/icons-material/Bolt";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
+import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import GitHubIcon from "@mui/icons-material/GitHub";
 import DashboardPage from "./DashboardPage";
 
 const STATUS_OPTIONS = [
@@ -138,30 +144,82 @@ const NavBar = () => {
   const tabs = [
     { label: "Home", path: "/" },
     { label: "Dashboard", path: "/dashboard" },
-    { label: "Predict", path: "/predict" },
     { label: "Inventory", path: "/inventory" },
+    { label: "Predict", path: "/predict" },
   ];
   const currentTab =
     tabs.find((tab) => tab.path !== "/" && location.pathname.startsWith(tab.path))
       ?.path || "/";
 
   return (
-    <AppBar position="sticky" color="default" elevation={1} sx={{ mb: 2 }}>
-      <Toolbar sx={{ gap: 2 }}>
-        <PrecisionManufacturingIcon fontSize="large" color="primary" />
-        <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h6" component="div">
-            DL4SE Industrial Inspector
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            AI-assisted quality console for ball screw drives
-          </Typography>
+    <AppBar
+      position="sticky"
+      color="default"
+      elevation={0}
+      sx={{
+        borderBottom: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper",
+        backdropFilter: "blur(8px)",
+        background: (theme) =>
+          theme.palette.mode === "dark"
+            ? "rgba(15, 23, 42, 0.8)"
+            : "rgba(255, 255, 255, 0.8)",
+      }}
+    >
+      <Toolbar sx={{ gap: 2, py: 1 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            color: "primary.main",
+          }}
+        >
+          <FactoryIcon sx={{ fontSize: 32 }} />
+          <Box>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 800,
+                letterSpacing: -0.5,
+                lineHeight: 1.2,
+                fontFamily: "Inter, system-ui, sans-serif",
+              }}
+            >
+              DL4SE <span style={{ fontWeight: 400, opacity: 0.8 }}>Console</span>
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{
+                display: "block",
+                fontWeight: 500,
+                letterSpacing: 0.2,
+                textTransform: "uppercase",
+                fontSize: "0.65rem",
+              }}
+            >
+              AI-powered Quality Management
+            </Typography>
+          </Box>
         </Box>
+
+        <Box sx={{ flexGrow: 1 }} />
+
         <Tabs
           value={currentTab}
           textColor="primary"
-          indicatorColor="secondary"
-          sx={{ minHeight: 48 }}
+          indicatorColor="primary"
+          sx={{
+            minHeight: 48,
+            "& .MuiTab-root": {
+              fontWeight: 600,
+              textTransform: "none",
+              fontSize: "0.95rem",
+              minWidth: 100,
+            },
+          }}
         >
           {tabs.map((tab) => (
             <Tab
@@ -173,13 +231,25 @@ const NavBar = () => {
             />
           ))}
         </Tabs>
+
+        <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 2 }} />
+
         <IconButton
           onClick={colorMode.toggleColorMode}
           color="inherit"
-          aria-label="Toggle dark mode"
-          sx={{ ml: 1 }}
+          size="small"
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 2,
+            p: 1,
+          }}
         >
-          {colorMode.mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
+          {colorMode.mode === "dark" ? (
+            <LightModeIcon fontSize="small" />
+          ) : (
+            <DarkModeIcon fontSize="small" />
+          )}
         </IconButton>
       </Toolbar>
     </AppBar>
@@ -187,19 +257,31 @@ const NavBar = () => {
 };
 
 const LandingPage = () => (
-  <Container maxWidth="lg" sx={{ py: 6 }}>
-    <Grid container spacing={4} alignItems="center">
-      <Grid item xs={12} md={6}>
+  <Container maxWidth="lg" sx={{ py: 8 }}>
+    <Stack spacing={5}>
+      <Box
+        sx={{
+          p: { xs: 4, md: 6 },
+          borderRadius: 5,
+          border: "1px solid",
+          borderColor: "divider",
+          background: (theme) =>
+            theme.palette.mode === "dark"
+              ? "linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.95))"
+              : "linear-gradient(135deg, #f8fbff, #e7f2ff)",
+        }}
+      >
         <Stack spacing={3}>
-          <Typography variant="h3" component="h1">
-            Precision-grade defect detection built for the factory floor
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            A ConvNeXt-Tiny model powers instant defect scoring on every lot. The
-            operations console lets your quality, maintenance, and supplier teams
-            collaborate in one place with AI-driven recommendations.
-          </Typography>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <Stack spacing={1}>
+            <Typography variant="h3" component="h1">
+              Ball Screw Drive Inventory & Defect Classifier
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              This tool helps quality engineers and maintenance teams manage their inventory of ball screw drives during the manufacturing process.
+              A Deep Learning model helps workers identify and manage issues faster by scoring images for defects.
+            </Typography>
+          </Stack>
+          <Stack direction={{ xs: "column", md: "row" }} spacing={2} flexWrap="wrap">
             <Button
               variant="contained"
               size="large"
@@ -220,32 +302,8 @@ const LandingPage = () => (
             </Button>
           </Stack>
         </Stack>
-      </Grid>
-      <Grid item xs={12} md={6}>
-        <Card elevation={0} sx={{ borderRadius: 4, border: 1, borderColor: "divider" }}>
-          <CardContent>
-            <Typography variant="overline" color="text.secondary">
-              What&apos;s included
-            </Typography>
-            <List>
-              {[
-                "ConvNeXt-Tiny inference running on CPU",
-                "FastAPI backend with persistent inventory",
-                "AI recommendations for triage workflows",
-                "Responsive Material Design UI",
-              ].map((feature) => (
-                <ListItem key={feature} disableGutters>
-                  <ListItemIcon>
-                    <CheckCircleOutlineIcon color="success" />
-                  </ListItemIcon>
-                  <ListItemText primary={feature} />
-                </ListItem>
-              ))}
-            </List>
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+      </Box>
+    </Stack>
   </Container>
 );
 
@@ -254,12 +312,13 @@ const PredictPage = () => {
   const [preview, setPreview] = useState("");
   const [result, setResult] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
 
-  const handleFileChange = (event) => {
-    const nextFile = event.target.files?.[0];
+  const processFile = (nextFile) => {
     setResult(null);
+    setError("");
     if (!nextFile) {
       setFile(null);
       setPreview("");
@@ -269,6 +328,28 @@ const PredictPage = () => {
     const reader = new FileReader();
     reader.onload = () => setPreview(reader.result.toString());
     reader.readAsDataURL(nextFile);
+  };
+
+  const handleFileChange = (event) => {
+    processFile(event.target.files?.[0]);
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setIsDragging(false);
+    const droppedFile = event.dataTransfer.files?.[0];
+    if (droppedFile) {
+      processFile(droppedFile);
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -314,95 +395,241 @@ const PredictPage = () => {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 6 }}>
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={5}>
-          <Card elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 4 }}>
-            <CardContent>
-              <Typography variant="overline" color="text.secondary">
-                Workflow
-              </Typography>
-              <List dense>
-                {[
-                  "Upload a PNG or JPEG sample",
-                  "ConvNeXt generates a defect probability",
-                  "Use the result to triage or log",
-                ].map((step) => (
-                  <ListItem key={step} disableGutters>
-                    <ListItemIcon>
-                      <BoltIcon color="warning" />
-                    </ListItemIcon>
-                    <ListItemText primary={step} />
-                  </ListItem>
-                ))}
-              </List>
+    <Container maxWidth="lg" sx={{ py: 8 }}>
+      <Grid container spacing={4} alignItems="stretch">
+        <Grid item xs={12} md={4}>
+          <Card
+            elevation={0}
+            sx={{
+              border: 1,
+              borderColor: "divider",
+              borderRadius: 4,
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <CardContent sx={{ p: 4, flexGrow: 1 }}>
+              <Stack spacing={3}>
+                <Box>
+                  <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
+                    Workflow
+                  </Typography>
+                  <List dense disablePadding>
+                    {[
+                      "Upload a PNG or JPEG sample",
+                      "The DL model generates a defect probability",
+                      "Use the result to help with quality decisions",
+                    ].map((step, idx) => (
+                      <ListItem key={step} disableGutters sx={{ py: 1 }}>
+                        <ListItemIcon sx={{ minWidth: 36 }}>
+                          <BoltIcon color="warning" fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={step}
+                          primaryTypographyProps={{ variant: "body2" }}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+
+                <Divider />
+
+                <Box>
+                  <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700, display: "block", mb: 2 }}>
+                    Helpful Resources
+                  </Typography>
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      borderRadius: 3,
+                      bgcolor: "action.hover",
+                      borderStyle: "dashed",
+                    }}
+                  >
+                    <Stack spacing={1.5}>
+                      <Button
+                        variant="contained"
+                        color="inherit"
+                        size="small"
+                        component="a"
+                        href="/sample-inventory-images.zip"
+                        startIcon={<CloudDownloadIcon />}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        fullWidth
+                        sx={{
+                          bgcolor: "background.paper",
+                          "&:hover": { bgcolor: "action.selected" },
+                        }}
+                      >
+                        Download Test Images (ZIP)
+                      </Button>
+                      <Typography variant="caption" color="text.secondary">
+                        Includes photos you can upload to test the classification model.
+                      </Typography>
+                    </Stack>
+                  </Paper>
+                </Box>
+              </Stack>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={7}>
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 4 }}>
-            <Stack component="form" spacing={3} onSubmit={handleSubmit}>
-              <Typography variant="h5">Send an image</Typography>
-              <Typography variant="body2" color="text.secondary">
-                The model runs entirely on CPU, so you can test predictions from any
-                laptop without GPU drivers.
-              </Typography>
-              <input
-                ref={fileInputRef}
-                type="file"
-                hidden
-                accept="image/png, image/jpeg"
-                onChange={handleFileChange}
-              />
-              <Stack direction="row" spacing={2}>
-                <Button
-                  variant="outlined"
-                  startIcon={<UploadFileIcon />}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {file ? "Change image" : "Select image"}
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={isSubmitting}
-                  startIcon={<AutoFixHighIcon />}
-                >
-                  {isSubmitting ? "Classifying..." : "Predict"}
-                </Button>
-              </Stack>
-              {isSubmitting && <LinearProgress />}
-              {preview && (
-                <Card
-                  variant="outlined"
-                  sx={{ borderRadius: 3, overflow: "hidden" }}
-                >
-                  <img
-                    src={preview}
-                    alt="Selected sample"
-                    style={{ width: "100%", maxHeight: 320, objectFit: "contain" }}
-                  />
-                  <CardContent>
+        <Grid item xs={12} md={8}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 4,
+              borderRadius: 4,
+              border: 1,
+              borderColor: "divider",
+            }}
+          >
+            <Stack component="form" spacing={4} onSubmit={handleSubmit}>
+              <Box>
+                <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
+                  Image Classification
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Upload a PNG or JPEG image of a ball screw drive. The model will analyze the surface for potential defects.
+                </Typography>
+              </Box>
+
+              <Box
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                sx={{
+                  p: 4,
+                  border: "2px dashed",
+                  borderColor: isDragging 
+                    ? "primary.main" 
+                    : file 
+                      ? "success.light" 
+                      : "divider",
+                  borderRadius: 4,
+                  bgcolor: (theme) =>
+                    isDragging
+                      ? theme.palette.mode === "dark"
+                        ? "rgba(33, 150, 243, 0.16)"
+                        : "rgba(33, 150, 243, 0.08)"
+                      : file
+                        ? theme.palette.mode === "dark"
+                          ? "rgba(33, 150, 243, 0.08)"
+                          : "rgba(33, 150, 243, 0.04)"
+                        : "action.hover",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 2,
+                  transition: "all 0.2s ease-in-out",
+                  cursor: "pointer",
+                }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  hidden
+                  accept="image/png, image/jpeg"
+                  onChange={handleFileChange}
+                />
+                {!preview ? (
+                  <Stack alignItems="center" spacing={1}>
+                    <CloudUploadIcon sx={{ fontSize: 48, color: "text.disabled" }} />
                     <Typography variant="body2" color="text.secondary">
-                      Preview of the uploaded image
+                      Drag & drop image here or click to browse
                     </Typography>
-                  </CardContent>
-                </Card>
+                  </Stack>
+                ) : (
+                  <Box
+                    sx={{
+                      position: "relative",
+                      width: "100%",
+                      maxWidth: 320,
+                      maxHeight: 240,
+                      borderRadius: 2,
+                      overflow: "hidden",
+                      boxShadow: 2,
+                      bgcolor: "black",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <img
+                      src={preview}
+                      alt="Selected sample"
+                      style={{ 
+                        maxWidth: "100%", 
+                        maxHeight: "240px", 
+                        display: "block",
+                        objectFit: "contain" 
+                      }}
+                    />
+                  </Box>
+                )}
+
+                <Stack direction="row" spacing={2} onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant={file ? "outlined" : "contained"}
+                    startIcon={<UploadFileIcon />}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {file ? "Change image" : "Select image"}
+                  </Button>
+                  {file && (
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={isSubmitting}
+                      startIcon={<AutoFixHighIcon />}
+                    >
+                      {isSubmitting ? "Classifying..." : "Run Analysis"}
+                    </Button>
+                  )}
+                </Stack>
+              </Box>
+
+              {isSubmitting && <LinearProgress sx={{ borderRadius: 1 }} />}
+
+              {error && (
+                <Alert severity="error" variant="outlined" sx={{ borderRadius: 2 }}>
+                  {error}
+                </Alert>
               )}
-              {error && <Alert severity="error">{error}</Alert>}
+
               {result && (
                 <Card
-                  variant="outlined"
-                  sx={{ borderRadius: 3, bgcolor: "action.hover" }}
+                  elevation={0}
+                  sx={{
+                    borderRadius: 3,
+                    bgcolor: result.label === 1 ? "error.main" : "success.main",
+                    color: "white",
+                  }}
                 >
-                  <CardContent>
-                    <Typography variant="h6">Prediction</Typography>
-                    <Typography variant="body1" sx={{ fontSize: "1.4rem", fontWeight: 600 }}>
-                      Probability (has defect): {result.score.toFixed(4)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Label: {result.label === 1 ? "Has defect" : "No defect"}
-                    </Typography>
+                  <CardContent sx={{ p: 3 }}>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="overline" sx={{ opacity: 0.8 }}>
+                          Model Result
+                        </Typography>
+                        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                          {result.label === 1 ? "Defect Detected" : "Clear / No Defect"}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ textAlign: "right" }}>
+                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                          Confidence
+                        </Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                          {(result.score * 100).toFixed(1)}%
+                        </Typography>
+                      </Box>
+                    </Stack>
                   </CardContent>
                 </Card>
               )}
@@ -851,8 +1078,7 @@ const InventoryPage = () => {
             Inventory manager
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Manage production lots, capture analyst notes, and let the AI model
-            spotlight the parts that need urgent attention.
+            Manage production lots, track the status of every item and use AI to help detect defects.
           </Typography>
         </Box>
 
@@ -1339,15 +1565,59 @@ const InventoryPage = () => {
   );
 };
 
+const Footer = () => (
+  <Box
+    component="footer"
+    sx={{
+      borderTop: "1px solid",
+      borderColor: "divider",
+      bgcolor: "background.paper",
+    }}
+  >
+    <Container maxWidth="lg" sx={{ py: 3 }}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1}
+        justifyContent="space-between"
+        alignItems={{ xs: "flex-start", sm: "center" }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          Built by Group 8
+        </Typography>
+        <Link
+          href="https://github.com/Emahhh/DL4SE-GUI-G08"
+          target="_blank"
+          rel="noopener noreferrer"
+          underline="hover"
+          sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}
+        >
+          <GitHubIcon fontSize="small" />
+          View project on GitHub
+        </Link>
+      </Stack>
+    </Container>
+  </Box>
+);
+
 const App = () => (
-  <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+  <Box
+    sx={{
+      minHeight: "100vh",
+      bgcolor: "background.default",
+      display: "flex",
+      flexDirection: "column",
+    }}
+  >
     <NavBar />
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/dashboard" element={<DashboardPage />} />
-      <Route path="/predict" element={<PredictPage />} />
-      <Route path="/inventory" element={<InventoryPage />} />
-    </Routes>
+    <Box component="main" sx={{ flexGrow: 1 }}>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/inventory" element={<InventoryPage />} />
+        <Route path="/predict" element={<PredictPage />} />
+      </Routes>
+    </Box>
+    <Footer />
   </Box>
 );
 

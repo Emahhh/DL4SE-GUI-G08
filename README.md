@@ -45,6 +45,24 @@ A minimal, single-container web app that serves a ConvNeXt-Tiny PyTorch image cl
 
 3. Open http://localhost:8000 to view the app; API lives at /api/predict.
 
+## Quick Test (Pre-built Docker Image)
+
+For testers who want to quickly run the application without building:
+
+1. **Pull the image from Docker Hub:**
+   ```bash
+   docker pull dariusan3/dl4se-demo-group8:latest
+   ```
+
+2. **Run the container:**
+   ```bash
+   docker run -p 8000:8000 dariusan3/dl4se-demo-group8:latest
+   ```
+
+3. **Open http://localhost:8000** in your browser to use the app.
+
+> **Note:** The `-p 8000:8000` flag is required to expose the port. Without it, the app won't be accessible.
+
 ## Cross-Architecture Builds
 
 - Build AMD64 image on ARM (e.g., Apple Silicon):

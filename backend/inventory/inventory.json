@@ -1,0 +1,57 @@
+[
+  {
+    "id": "3ac03a2c-e0f1-4c24-a451-559dc4da0e46",
+    "name": "N (3).png",
+    "status": "needs_attention",
+    "owner": "",
+    "created_at": 1767804243.4454033,
+    "image_path": "/inventory/images/3ac03a2c-e0f1-4c24-a451-559dc4da0e46.png",
+    "notes": "",
+    "score": 0.9996756315231323,
+    "label": 1
+  },
+  {
+    "id": "3c2d14de-e2bc-4971-b61d-6a28b3bb5a0c",
+    "name": "N (5).png",
+    "status": "cleared",
+    "owner": "",
+    "created_at": 1767804243.4473457,
+    "image_path": "/inventory/images/3c2d14de-e2bc-4971-b61d-6a28b3bb5a0c.png",
+    "notes": "",
+    "score": 1.9759787139861373e-09,
+    "label": 0
+  },
+  {
+    "id": "a17a9c10-f57b-4467-9cc7-d0808f099529",
+    "name": "N (6)-1.png",
+    "status": "cleared",
+    "owner": "",
+    "created_at": 1767804243.4484124,
+    "image_path": "/inventory/images/a17a9c10-f57b-4467-9cc7-d0808f099529.png",
+    "notes": "",
+    "score": 0.1346619427204132,
+    "label": 0
+  },
+  {
+    "id": "ad1d9a14-19db-4f08-bf4c-7fadcbcad340",
+    "name": "N (6).png",
+    "status": "cleared",
+    "owner": "",
+    "created_at": 1767804243.44933,
+    "image_path": "/inventory/images/ad1d9a14-19db-4f08-bf4c-7fadcbcad340.png",
+    "notes": "",
+    "score": 0.1346619427204132,
+    "label": 0
+  },
+  {
+    "id": "30451782-5a7f-4f66-89e6-46dcfb660eb9",
+    "name": "N (21).png",
+    "status": "needs_attention",
+    "owner": "",
+    "created_at": 1767804243.4505439,
+    "image_path": "/inventory/images/30451782-5a7f-4f66-89e6-46dcfb660eb9.png",
+    "notes": "",
+    "score": 0.9080749154090881,
+    "label": 1
+  }
+]

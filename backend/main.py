@@ -57,6 +57,10 @@ START_TIME = time.time()
 # Create the FastAPI application instance that will manage routes and middleware.
 app = FastAPI(title="DL4SE Demo API", version="1.0.0")
 
+# Initialize SQLite database at startup.
+from .database import init_database
+init_database()
+
 # Add a permissive CORS policy to simplify local development across ports; adjust in production.
 app.add_middleware(
     CORSMiddleware,
@@ -420,20 +424,34 @@ async def predict(payload: PredictRequest) -> PredictResponse:
     score = float(probs[0, 1].item())
     # Derive the predicted class index.
     label = int(probs.argmax(dim=1).item())
+    
+    # Log prediction to SQLite database.
+    from .database import log_prediction
+    await log_prediction(score, label)
+    
     # Return the structured response object containing both the score and label.
     return PredictResponse(score=score, label=label)
 
 
-# Return all inventory items persisted on disk.
-@app.get("/api/inventory", response_model=list[InventoryItem])
-async def list_inventory() -> list[InventoryItem]:
-    return load_inventory()
+# Return prediction history from SQLite database.
+@app.get("/api/predictions/history")
+async def prediction_history(limit: int = 50) -> list[dict]:
+    from .database import get_prediction_history
+    return await get_prediction_history(limit)
 
 
-# Batch upload inventory images; images are stored on disk and metadata persisted.
-@app.post("/api/inventory/upload", response_model=list[InventoryItem])
-async def upload_inventory(payload: InventoryUploadRequest) -> list[InventoryItem]:
-    items = load_inventory()
+# Return all inventory items from SQLite database.
+@app.get("/api/inventory")
+async def list_inventory() -> list[dict]:
+    from .database import get_all_inventory_items
+    return await get_all_inventory_items()
+
+
+# Batch upload inventory images; images are stored on disk and metadata in SQLite.
+@app.post("/api/inventory/upload")
+async def upload_inventory(payload: InventoryUploadRequest) -> list[dict]:
+    from .database import add_inventory_item, get_all_inventory_items
+    
     for entry in payload.items:
         raw_base64 = entry.get("image_base64", "")
         name = entry.get("name") or "Item"
@@ -452,9 +470,9 @@ async def upload_inventory(payload: InventoryUploadRequest) -> list[InventoryIte
         with file_path.open("wb") as fh:
             fh.write(image_bytes)
 
-        # Build and append the inventory record.
-        record = InventoryItem(
-            id=item_id,
+        # Add inventory record to SQLite database.
+        await add_inventory_item(
+            item_id=item_id,
             name=name,
             status=ensure_valid_status(entry.get("status")),
             owner=entry.get("owner", ""),
@@ -464,84 +482,166 @@ async def upload_inventory(payload: InventoryUploadRequest) -> list[InventoryIte
             score=None,
             label=None,
         )
-        items.append(record)
 
-    save_inventory(items)
-    return items
+    return await get_all_inventory_items()
 
 
-# Classify all stored inventory items and persist results.
-@app.post("/api/inventory/classify", response_model=list[InventoryItem])
-async def classify_inventory() -> list[InventoryItem]:
-    items = load_inventory()
-    updated = []
+# Classify all stored inventory items and persist results in SQLite.
+@app.post("/api/inventory/classify")
+async def classify_inventory() -> list[dict]:
+    from .database import get_all_inventory_items, update_inventory_item as db_update_item
+    
+    items = await get_all_inventory_items()
     for item in items:
         try:
-            updated_item = classify_inventory_item(item)
-        except FileNotFoundError as exc:
-            # If an image is missing, keep the item unchanged and continue.
-            updated_item = item
-            updated_item.notes = f"Missing image: {exc}"
-        updated.append(updated_item)
-    save_inventory(updated)
-    return updated
+            # Load and classify the image
+            image_file = INVENTORY_IMAGES_DIR / Path(item["image_path"]).name
+            if not image_file.exists():
+                await db_update_item(item["id"], notes=f"Missing image: {image_file}")
+                continue
+            
+            image = Image.open(image_file).convert("RGB")
+            tensor = PREPROCESS(image).unsqueeze(0)
+            
+            with torch.no_grad():
+                logits = MODEL(tensor)
+                probs = F.softmax(logits, dim=1)
+            
+            score = float(probs[0, 1].item())
+            label = int(probs.argmax(dim=1).item())
+            new_status = "needs_attention" if label == 1 else "cleared"
+            
+            await db_update_item(item["id"], score=score, label=label, status=new_status)
+        except Exception as exc:
+            await db_update_item(item["id"], notes=f"Classification error: {exc}")
+    
+    return await get_all_inventory_items()
 
 
-@app.patch("/api/inventory/{item_id}", response_model=InventoryItem)
-async def update_inventory_item(item_id: str, payload: InventoryUpdateRequest) -> InventoryItem:
-    items = load_inventory()
-    updated_item: InventoryItem | None = None
-    next_items: list[InventoryItem] = []
-    for item in items:
-        if item.id == item_id:
-            updated_item = apply_updates(item, payload)
-            next_items.append(updated_item)
-        else:
-            next_items.append(item)
-
-    if updated_item is None:
+@app.patch("/api/inventory/{item_id}")
+async def update_inventory_item_endpoint(item_id: str, payload: InventoryUpdateRequest) -> dict:
+    from .database import get_inventory_item_by_id, update_inventory_item as db_update_item
+    
+    item = await get_inventory_item_by_id(item_id)
+    if item is None:
         raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    # Build update kwargs
+    updates = {}
+    if payload.name is not None:
+        updates["name"] = payload.name.strip() or item["name"]
+    if payload.status is not None:
+        updates["status"] = ensure_valid_status(payload.status.strip())
+    if payload.owner is not None:
+        updates["owner"] = payload.owner.strip()
+    if payload.notes is not None:
+        if payload.append_notes and item.get("notes"):
+            updates["notes"] = f"{item['notes']}\n{payload.notes.strip()}"
+        else:
+            updates["notes"] = payload.notes.strip()
+    
+    if updates:
+        await db_update_item(item_id, **updates)
+    
+    return await get_inventory_item_by_id(item_id)
 
-    save_inventory(next_items)
-    return updated_item
 
-
-@app.post("/api/inventory/batch-update", response_model=list[InventoryItem])
-async def batch_update_inventory(payload: InventoryBatchUpdateRequest) -> list[InventoryItem]:
+@app.post("/api/inventory/batch-update")
+async def batch_update_inventory(payload: InventoryBatchUpdateRequest) -> list[dict]:
+    from .database import get_inventory_item_by_id, update_inventory_item as db_update_item, get_all_inventory_items
+    
     targets = set(payload.item_ids)
     if not targets:
         raise HTTPException(status_code=400, detail="item_ids cannot be empty")
 
-    items = load_inventory()
-    touched = False
-    next_items: list[InventoryItem] = []
-    for item in items:
-        if item.id in targets:
-            touched = True
-            next_items.append(apply_updates(item, payload))
-        else:
-            next_items.append(item)
+    updated_count = 0
+    for item_id in targets:
+        item = await get_inventory_item_by_id(item_id)
+        if item is None:
+            continue
+        
+        updates = {}
+        if payload.name is not None:
+            updates["name"] = payload.name.strip() or item["name"]
+        if payload.status is not None:
+            updates["status"] = ensure_valid_status(payload.status.strip())
+        if payload.owner is not None:
+            updates["owner"] = payload.owner.strip()
+        if payload.notes is not None:
+            if payload.append_notes and item.get("notes"):
+                updates["notes"] = f"{item['notes']}\n{payload.notes.strip()}"
+            else:
+                updates["notes"] = payload.notes.strip()
+        
+        if updates:
+            await db_update_item(item_id, **updates)
+            updated_count += 1
 
-    if not touched:
+    if updated_count == 0:
         raise HTTPException(status_code=404, detail="No matching items found")
 
-    save_inventory(next_items)
-    return next_items
+    return await get_all_inventory_items()
 
 
 @app.post("/api/inventory/ai-insights")
 async def ai_insights(payload: InventoryAIInsightsRequest) -> dict:
+    from .database import get_inventory_item_by_id
+    
     targets = set(payload.item_ids)
-    items = load_inventory()
-    lookup = {item.id: item for item in items}
     insights = []
     missing: list[str] = []
+    
     for item_id in targets:
-        item = lookup.get(item_id)
+        item = await get_inventory_item_by_id(item_id)
         if item is None:
             missing.append(item_id)
             continue
-        insights.append(build_ai_insight(item))
+        
+        # Build insight from dict item
+        score = item.get("score") or 0.0
+        has_prediction = item.get("score") is not None
+        recommended_status = "awaiting_review" if not has_prediction else "in_review"
+        priority = "low" if not has_prediction else "medium"
+        owner_hint = item.get("owner") or ("Maintenance" if score >= 0.6 else "Quality")
+        suggested_note = "Item has not been classified yet. Schedule inspection."
+
+        if not has_prediction:
+            summary = "No prediction data available; prompt the lab to classify this image."
+        elif score >= 0.85:
+            recommended_status = "needs_attention"
+            priority = "critical"
+            owner_hint = "Reliability"
+            summary = "Model flags this component as highly likely defective. Quarantine the lot immediately."
+            suggested_note = "Hold shipment, escalate to reliability engineering, and initiate tear-down analysis."
+        elif score >= 0.65:
+            recommended_status = "needs_attention"
+            priority = "high"
+            owner_hint = "Maintenance"
+            summary = "Elevated defect probability; prioritize rework and secondary inspection."
+            suggested_note = "Route to maintenance for rework and request ultrasonic verification."
+        elif score >= 0.45:
+            recommended_status = "in_review"
+            priority = "elevated"
+            summary = "Borderline reading; keep under observation and sample additional units."
+            suggested_note = "Add to the monitoring queue and capture more samples from the same batch."
+        else:
+            recommended_status = "cleared"
+            priority = "low"
+            owner_hint = item.get("owner") or "Quality"
+            summary = "Low likelihood of defect; release after visual confirmation."
+            suggested_note = "Log QA spot check and release to assembly if no manual defects are found."
+
+        insights.append({
+            "item_id": item["id"],
+            "name": item["name"],
+            "current_status": item["status"],
+            "recommended_status": recommended_status,
+            "priority": priority,
+            "owner_hint": owner_hint,
+            "confidence": round(score, 3) if item.get("score") is not None else None,
+            "summary": summary,
+            "suggested_note": suggested_note,
+        })
 
     return {"insights": insights, "missing": missing}
 

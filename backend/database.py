@@ -187,6 +187,41 @@ async def delete_inventory_item(item_id: str):
         await db.commit()
 
 
+async def get_inventory_items_by_ids(item_ids: list[str]):
+    """Fetch multiple inventory items by ID.
+
+    Returns a list of dict rows in undefined order.
+    """
+    if not item_ids:
+        return []
+
+    placeholders = ",".join(["?"] * len(item_ids))
+    query = f"SELECT * FROM inventory_items WHERE id IN ({placeholders})"
+
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(query, item_ids)
+        rows = await cursor.fetchall()
+        return [dict(row) for row in rows]
+
+
+async def delete_inventory_items(item_ids: list[str]) -> int:
+    """Delete multiple inventory items from SQLite.
+
+    Returns the number of rows deleted.
+    """
+    if not item_ids:
+        return 0
+
+    placeholders = ",".join(["?"] * len(item_ids))
+    query = f"DELETE FROM inventory_items WHERE id IN ({placeholders})"
+
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        cursor = await db.execute(query, item_ids)
+        await db.commit()
+        return cursor.rowcount or 0
+
+
 # Initialize database when this module is imported
 if __name__ == "__main__":
     # Run directly to initialize the database: python database.py

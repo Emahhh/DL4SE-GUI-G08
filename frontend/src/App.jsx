@@ -71,6 +71,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import InsightsIcon from "@mui/icons-material/Insights";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EngineeringIcon from "@mui/icons-material/Engineering";
 import HubIcon from "@mui/icons-material/Hub";
 import FactoryIcon from "@mui/icons-material/Factory";
@@ -160,11 +161,14 @@ const NavBar = () => {
         borderBottom: "1px solid",
         borderColor: "divider",
         bgcolor: "background.paper",
-        backdropFilter: "blur(8px)",
+        backdropFilter: "blur(12px)",
         background: (theme) =>
           theme.palette.mode === "dark"
-            ? "rgba(15, 23, 42, 0.8)"
-            : "rgba(255, 255, 255, 0.8)",
+            ? "rgba(10, 14, 19, 0.85)"
+            : "rgba(255, 255, 255, 0.85)",
+        boxShadow: (theme) => theme.palette.mode === "light"
+          ? "0 1px 3px rgba(0, 0, 0, 0.03)"
+          : "0 1px 3px rgba(0, 0, 0, 0.2)",
       }}
     >
       <Toolbar sx={{ gap: 2, py: 1 }}>
@@ -261,14 +265,23 @@ const LandingPage = () => (
     <Stack spacing={5}>
       <Box
         sx={{
-          p: { xs: 4, md: 6 },
+          p: { xs: 5, md: 7 },
           borderRadius: 5,
           border: "1px solid",
           borderColor: "divider",
           background: (theme) =>
             theme.palette.mode === "dark"
-              ? "linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.95))"
-              : "linear-gradient(135deg, #f8fbff, #e7f2ff)",
+              ? "linear-gradient(135deg, rgba(10,14,19,0.98), rgba(22,27,34,0.98))"
+              : "linear-gradient(135deg, #f8fbff, #e8f2ff)",
+          boxShadow: (theme) => theme.palette.mode === "light"
+            ? "0 8px 32px rgba(31, 79, 138, 0.08)"
+            : "0 8px 32px rgba(0, 0, 0, 0.4)",
+          transition: "all 0.3s ease",
+          '&:hover': {
+            boxShadow: (theme) => theme.palette.mode === "light"
+              ? "0 12px 40px rgba(31, 79, 138, 0.12)"
+              : "0 12px 40px rgba(0, 0, 0, 0.5)",
+          },
         }}
       >
         <Stack spacing={3}>
@@ -438,7 +451,7 @@ const PredictPage = () => {
 
                 <Box>
                   <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700, display: "block", mb: 2 }}>
-                    Helpful Resources
+                    Need Test Data?
                   </Typography>
                   <Paper
                     variant="outlined"
@@ -988,6 +1001,43 @@ const InventoryPage = () => {
     }
   };
 
+  const handleBatchDelete = async () => {
+    if (!hasSelection) {
+      showToast("warning", "Select items to delete.");
+      return;
+    }
+
+    const count = selectedIds.size;
+    const confirmed = window.confirm(
+      `Delete ${count} selected item${count === 1 ? "" : "s"}? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const idsToDelete = Array.from(selectedIds);
+      const res = await fetch("/api/inventory/batch-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item_ids: idsToDelete }),
+      });
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.detail || "Delete failed");
+      }
+      const data = await res.json();
+      setItems(data);
+      setSelectedIds(new Set());
+      setAiInsights([]);
+      if (activeItemId && idsToDelete.includes(activeItemId)) {
+        setActiveItemId(null);
+        setEditDraft(null);
+      }
+      showToast("success", `Deleted ${count} item${count === 1 ? "" : "s"}.`);
+    } catch (err) {
+      showToast("error", err.message || "Delete failed");
+    }
+  };
+
   const applyInsight = async (insight) => {
     try {
       await patchItem(
@@ -1103,51 +1153,93 @@ const InventoryPage = () => {
         </Grid>
 
         <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: "1px solid #e4e7ec" }}>
-          <Stack spacing={2}>
-            <Typography variant="h6">Upload new images</Typography>
-            <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "center" }}>
-              <input
-                ref={fileInputRef}
-                type="file"
-                hidden
-                accept="image/png, image/jpeg"
-                multiple
-                onChange={handleFileChange}
-              />
-              <Button
-                variant="outlined"
-                startIcon={<UploadFileIcon />}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {files.length ? "Add more images" : "Select images"}
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleUpload}
-                disabled={loading}
-                startIcon={
-                  loading ? (
-                    <CircularProgress size={18} color="inherit" />
-                  ) : (
-                    <CloudUploadIcon />
-                  )
-                }
-              >
-                {loading ? "Uploading..." : "Upload"}
-              </Button>
-            </Stack>
-
-            {files.length > 0 && (
-              <Stack direction="row" spacing={1} flexWrap="wrap">
-                {files.map((file, idx) => (
-                  <Chip
-                    key={`${file.name}-${idx}`}
-                    label={file.name}
-                    onDelete={() => handleRemoveFile(idx)}
-                  />
-                ))}
+          <Stack spacing={3}>
+            <Box>
+              <Typography variant="h6" gutterBottom>Upload new images</Typography>
+              <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "center" }}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  hidden
+                  accept="image/png, image/jpeg"
+                  multiple
+                  onChange={handleFileChange}
+                />
+                <Button
+                  variant="outlined"
+                  startIcon={<UploadFileIcon />}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {files.length ? "Add more images" : "Select images"}
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={handleUpload}
+                  disabled={loading}
+                  startIcon={
+                    loading ? (
+                      <CircularProgress size={18} color="inherit" />
+                    ) : (
+                      <CloudUploadIcon />
+                    )
+                  }
+                >
+                  {loading ? "Uploading..." : "Upload"}
+                </Button>
               </Stack>
-            )}
+
+              {files.length > 0 && (
+                <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 2 }}>
+                  {files.map((file, idx) => (
+                    <Chip
+                      key={`${file.name}-${idx}`}
+                      label={file.name}
+                      onDelete={() => handleRemoveFile(idx)}
+                    />
+                  ))}
+                </Stack>
+              )}
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700, display: "block", mb: 1.5 }}>
+                Need Test Data?
+              </Typography>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 2.5,
+                  borderRadius: 3,
+                  bgcolor: "action.hover",
+                  borderStyle: "dashed",
+                }}
+              >
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "flex-start", sm: "center" }}>
+                  <Button
+                    variant="contained"
+                    color="inherit"
+                    size="medium"
+                    component="a"
+                    href="/sample-inventory-images.zip"
+                    startIcon={<CloudDownloadIcon />}
+                    download
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{
+                      bgcolor: "background.paper",
+                      "&:hover": { bgcolor: "action.selected" },
+                    }}
+                  >
+                    Download Sample Images (ZIP)
+                  </Button>
+                  <Typography variant="caption" color="text.secondary">
+                    Includes sample photos you can upload to test batch classification and inventory management.
+                  </Typography>
+                </Stack>
+              </Paper>
+            </Box>
           </Stack>
         </Paper>
 
@@ -1302,6 +1394,15 @@ const InventoryPage = () => {
                   }
                 >
                   {insightsLoading ? "Analyzing..." : "Get AI recommendations"}
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={handleBatchDelete}
+                  disabled={!hasSelection}
+                  startIcon={<DeleteOutlineIcon />}
+                >
+                  Delete selected
                 </Button>
               </Stack>
             </Stack>

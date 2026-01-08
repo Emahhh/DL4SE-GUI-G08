@@ -177,9 +177,18 @@ const DashboardPage = () => {
         <Grid container spacing={3}>
             {/* Status Distribution */}
              <Grid item xs={12} md={6}>
-            <Card sx={{ height: '100%', borderRadius: 4 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Status Distribution</Typography>
+            <Card sx={{ 
+              height: '100%', 
+              borderRadius: 4,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: (theme) => theme.palette.mode === 'light'
+                  ? '0px 8px 24px rgba(0, 0, 0, 0.08)'
+                  : '0px 8px 24px rgba(0, 0, 0, 0.45)',
+              }
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom fontWeight={700}>Status Distribution</Typography>
                 <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -207,9 +216,18 @@ const DashboardPage = () => {
 
           {/* Owner Workload */}
           <Grid item xs={12} md={6}>
-            <Card sx={{ height: '100%', borderRadius: 4 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Workload by Owner</Typography>
+            <Card sx={{ 
+              height: '100%', 
+              borderRadius: 4,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: (theme) => theme.palette.mode === 'light'
+                  ? '0px 8px 24px rgba(0, 0, 0, 0.08)'
+                  : '0px 8px 24px rgba(0, 0, 0, 0.45)',
+              }
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom fontWeight={700}>Workload by Owner</Typography>
                 <Box sx={{ height: 300 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={metrics.barData} layout="vertical" margin={{ left: 20 }}>
@@ -227,9 +245,17 @@ const DashboardPage = () => {
 
            {/* Inspection Trend */}
            <Grid item xs={12}>
-            <Card sx={{ borderRadius: 4 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Inspection Activity Trend</Typography>
+            <Card sx={{ 
+              borderRadius: 4,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: (theme) => theme.palette.mode === 'light'
+                  ? '0px 8px 24px rgba(0, 0, 0, 0.08)'
+                  : '0px 8px 24px rgba(0, 0, 0, 0.45)',
+              }
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom fontWeight={700}>Inspection Activity Trend</Typography>
                 <Box sx={{ height: 300 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={metrics.lineData}>
@@ -253,19 +279,41 @@ const DashboardPage = () => {
 };
 
 const SummaryCard = ({ title, value, icon, color, helpText }) => (
-  <Card sx={{ height: '100%', borderRadius: 4, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-    <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Box sx={{ p: 1.5, borderRadius: '50%', bgcolor: `${color}15`, color: color, display: 'flex' }}>
+  <Card 
+    sx={{ 
+      height: '100%', 
+      borderRadius: 4, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      justifyContent: 'center',
+      transition: 'all 0.3s ease',
+      '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: (theme) => theme.palette.mode === 'light'
+          ? '0px 8px 24px rgba(0, 0, 0, 0.1)'
+          : '0px 8px 24px rgba(0, 0, 0, 0.5)',
+      }
+    }}
+  >
+    <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2.5, p: 3 }}>
+        <Box sx={{ 
+          p: 2, 
+          borderRadius: 3, 
+          bgcolor: `${color}15`, 
+          color: color, 
+          display: 'flex',
+          boxShadow: `0 0 0 1px ${color}20`
+        }}>
             {icon}
         </Box>
         <Box>
-            <Typography color="text.secondary" variant="body2" fontWeight={600}>
+            <Typography color="text.secondary" variant="caption" fontWeight={700} letterSpacing={0.5}>
                 {title.toUpperCase()}
             </Typography>
-            <Typography variant="h4" fontWeight="bold">
+            <Typography variant="h4" fontWeight="bold" sx={{ my: 0.5 }}>
                 {value}
             </Typography>
-            {helpText && <Typography variant="caption" color="text.secondary">{helpText}</Typography>}
+            {helpText && <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.8 }}>{helpText}</Typography>}
         </Box>
     </CardContent>
   </Card>

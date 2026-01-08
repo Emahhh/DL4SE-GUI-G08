@@ -117,6 +117,12 @@ class InventoryBatchUpdateRequest(InventoryUpdateRequest):
     item_ids: list[str] = Field(..., min_length=1, description="IDs to update")
 
 
+class InventoryBatchDeleteRequest(BaseModel):
+    """Schema for deleting multiple inventory items in one request."""
+
+    item_ids: list[str] = Field(..., min_length=1, description="IDs to delete")
+
+
 class InventoryAIInsightsRequest(BaseModel):
     """Schema for requesting AI-driven recommendations for selected items."""
 
@@ -538,7 +544,7 @@ async def classify_inventory() -> list[dict]:
             
             score = float(probs[0, 1].item())
             label = int(probs.argmax(dim=1).item())
-            new_status = "needs_attention" if label == 1 else "cleared"
+            new_status = "needs_attention" if label == 1 else "awaiting_review"
             
             await db_update_item(item["id"], score=score, label=label, status=new_status)
         except Exception as exc:
@@ -607,6 +613,42 @@ async def batch_update_inventory(payload: InventoryBatchUpdateRequest) -> list[d
             updated_count += 1
 
     if updated_count == 0:
+        raise HTTPException(status_code=404, detail="No matching items found")
+
+    return await get_all_inventory_items()
+
+
+@app.post("/api/inventory/batch-delete")
+async def batch_delete_inventory(payload: InventoryBatchDeleteRequest) -> list[dict]:
+    from .database import (
+        get_all_inventory_items,
+        get_inventory_items_by_ids,
+        delete_inventory_items,
+    )
+
+    targets = list(dict.fromkeys(payload.item_ids))
+    if not targets:
+        raise HTTPException(status_code=400, detail="item_ids cannot be empty")
+
+    # Fetch rows first so we can remove images from disk.
+    rows = await get_inventory_items_by_ids(targets)
+    if not rows:
+        raise HTTPException(status_code=404, detail="No matching items found")
+
+    # Best-effort remove stored image files.
+    for row in rows:
+        try:
+            image_name = Path(row.get("image_path", "")).name
+            if image_name:
+                image_file = INVENTORY_IMAGES_DIR / image_name
+                if image_file.exists():
+                    image_file.unlink()
+        except Exception:
+            # If file removal fails, still proceed with DB deletion.
+            pass
+
+    deleted_count = await delete_inventory_items([row["id"] for row in rows])
+    if deleted_count == 0:
         raise HTTPException(status_code=404, detail="No matching items found")
 
     return await get_all_inventory_items()
